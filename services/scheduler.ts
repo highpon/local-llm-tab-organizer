@@ -11,7 +11,9 @@ export type Message =
   | { type: 'applyPending'; kind: 'dedupe' | 'grouping' }
   | { type: 'discardPending'; kind: 'dedupe' | 'grouping' }
   | { type: 'undo' }
-  | { type: 'settingsChanged' };
+  | { type: 'settingsChanged' }
+  | { type: 'downloadModels' }
+  | { type: 'deleteModels' };
 
 /** Create the alarm only when it is missing or its period differs. */
 export async function ensureAlarm(s: Settings): Promise<void> {

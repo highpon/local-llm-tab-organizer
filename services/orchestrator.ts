@@ -1,9 +1,11 @@
+import { classifyByDomain } from '../core/classifyByDomain';
 import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
-import type { ClassifyErrorKind, DedupePlan, GroupingPlan, Snapshot, TabInfo } from '../core/types';
+import type { ClassifyErrorKind, DedupePlan, ExistingGroup, GroupInfo, GroupingPlan, Snapshot, TabInfo } from '../core/types';
 import { t } from './i18n';
 import { whileKeepingAlive } from './keepAlive';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
+import { classifyOnDevice } from './onDeviceClassifier';
 import { discardPending, loadPending, planSignature, savePendingKind, type PendingKind } from './pending';
 import { appendRun, type RunRecord, type Trigger } from './runHistory';
 import { loadSettings, type Settings } from './settings';
@@ -15,7 +17,7 @@ export interface RunDeps {
   snapshot: () => Promise<Snapshot>;
   applyDedupe: (p: DedupePlan) => Promise<AppliedDedupe>;
   applyGrouping: (p: GroupingPlan) => Promise<AppliedGrouping>;
-  classify: (tabs: TabInfo[], groupNames: string[], cfg: Settings['llm']) => Promise<ClassifyResult>;
+  classify: (tabs: TabInfo[], existing: ExistingGroup[], settings: Settings) => Promise<ClassifyResult>;
   notify: (id: string, message: string) => Promise<void>;
   now: () => number;
 }
@@ -24,12 +26,35 @@ const LOCK_KEY = 'runLock';
 const LOCK_TTL_MS = 5 * 60_000;
 const LLM_STATUS_KEY = 'llmStatus';
 
+async function classify(tabs: TabInfo[], existing: ExistingGroup[], settings: Settings): Promise<ClassifyResult> {
+  switch (settings.classifier) {
+    case 'llm':
+      return classifyTabs(tabs, existing.map((g) => g.title), settings.llm);
+    case 'onDevice':
+      return classifyOnDevice(tabs, existing);
+    case 'domain':
+      return { assignments: classifyByDomain(tabs), method: 'domain' };
+  }
+}
+
+/** Named groups as join targets, with their tabs; same-titled groups (other windows) are merged. */
+function existingGroups(tabs: TabInfo[], groups: GroupInfo[]): ExistingGroup[] {
+  const byTitle = new Map<string, ExistingGroup>();
+  for (const g of groups) {
+    if (g.title === '') continue;
+    const entry = byTitle.get(g.title) ?? { title: g.title, tabs: [] };
+    entry.tabs.push(...tabs.filter((t) => t.groupId === g.id));
+    byTitle.set(g.title, entry);
+  }
+  return [...byTitle.values()];
+}
+
 function defaultDeps(): RunDeps {
   return {
     snapshot: adapter.snapshot,
     applyDedupe: adapter.applyDedupe,
     applyGrouping: adapter.applyGrouping,
-    classify: classifyTabs,
+    classify,
     notify: async (id, message) => {
       await browser.notifications.create(id, {
         type: 'basic', title: 'tab-tidy', message, iconUrl: browser.runtime.getURL('/icon.svg'),
@@ -146,9 +171,10 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
         let n = 0;
         let plan: GroupingPlan | undefined;
         if (candidates.length > 0) {
-          const names = [...new Set(snap.groups.map((g) => g.title).filter((t) => t !== ''))];
-          const result = await whileKeepingAlive(() => d.classify(candidates, names, settings.llm));
+          const existing = existingGroups(snap.tabs, snap.groups);
+          const result = await whileKeepingAlive(() => d.classify(candidates, existing, settings));
           record.method = result.method;
+          if (result.error) record.classifyError = result.error;
           if (settings.classifier === 'llm') await updateLlmStatus(result.error, d);
           plan = planGrouping(snap.tabs, snap.groups, result.assignments);
           n = countTabs(plan);
