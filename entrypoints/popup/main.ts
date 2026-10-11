@@ -54,8 +54,9 @@ function actions(kind: 'dedupe' | 'grouping'): HTMLDivElement {
   const act = (type: 'applyPending' | 'discardPending') => async () => {
     apply.disabled = discard.disabled = true;
     try {
-      await send({ type, kind });
-      setMessage(type === 'applyPending' ? '適用しました' : '破棄しました');
+      const res = await send({ type, kind });
+      if (res === 'busy') setMessage('実行中です。しばらくしてからもう一度お試しください');
+      else setMessage(type === 'applyPending' ? '適用しました' : '破棄しました');
     } catch (e) {
       setMessage(String(e), true);
     }

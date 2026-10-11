@@ -2,7 +2,7 @@ import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
 import type { DedupePlan, GroupingPlan, LlmErrorKind, Snapshot, TabInfo } from '../core/types';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
-import { discardPending, loadPending, savePendingKind } from './pending';
+import { discardPending, loadPending, planSignature, savePendingKind, type PendingKind } from './pending';
 import { appendRun, type RunRecord, type Trigger } from './runHistory';
 import { loadSettings, type Settings } from './settings';
 import * as adapter from './tabsAdapter';
@@ -40,22 +40,6 @@ function defaultDeps(): RunDeps {
   };
 }
 
-export async function applyPending(
-  kind: 'dedupe' | 'grouping', deps: Partial<RunDeps> = {},
-): Promise<void> {
-  const d = { ...defaultDeps(), ...deps };
-  const pending = await loadPending();
-  if (!pending) return;
-  if (kind === 'dedupe' && pending.dedupe) {
-    const res = await d.applyDedupe(pending.dedupe);
-    if (res.closed.length > 0) await saveUndo({ at: d.now(), closed: res.closed, grouped: [] });
-  } else if (kind === 'grouping' && pending.grouping) {
-    const res = await d.applyGrouping(pending.grouping);
-    if (res.grouped.length > 0) await saveUndo({ at: d.now(), closed: [], grouped: res.grouped });
-  }
-  await discardPending(kind);
-}
-
 async function acquireLock(now: number): Promise<boolean> {
   const stored = await browser.storage.session.get(LOCK_KEY);
   const held = stored[LOCK_KEY];
@@ -77,6 +61,42 @@ const countTabs = (p: GroupingPlan): number =>
   [...p.addToExisting, ...p.createNew].reduce((n, g) => n + g.tabs.length, 0);
 
 let inFlight = false; // same-context guard; the storage lock covers restarts and expiry
+
+export type ApplyPendingResult = 'applied' | 'busy' | 'none';
+
+/**
+ * Applies a stored suggestion under the same guard and lock as runCycle, so it never
+ * races a run. Returns 'busy' (and applies nothing) while a run is in progress.
+ */
+export async function applyPending(
+  kind: PendingKind, deps: Partial<RunDeps> = {},
+): Promise<ApplyPendingResult> {
+  const d = { ...defaultDeps(), ...deps };
+  if (inFlight) return 'busy';
+  inFlight = true;
+  let ownsLock = false;
+  try {
+    const now = d.now();
+    ownsLock = await acquireLock(now);
+    if (!ownsLock) return 'busy';
+    const plan = (await loadPending())?.[kind];
+    if (!plan) return 'none';
+    if (kind === 'dedupe') {
+      const res = await d.applyDedupe(plan as DedupePlan);
+      if (res.closed.length > 0) await saveUndo({ at: now, closed: res.closed, grouped: [] });
+    } else {
+      const res = await d.applyGrouping(plan as GroupingPlan);
+      if (res.grouped.length > 0) await saveUndo({ at: now, closed: [], grouped: res.grouped });
+    }
+    // Remove the suggestion only if it is still the one just applied.
+    const after = (await loadPending())?.[kind];
+    if (planSignature(kind, after) === planSignature(kind, plan)) await discardPending(kind);
+    return 'applied';
+  } finally {
+    if (ownsLock) await browser.storage.session.remove(LOCK_KEY);
+    inFlight = false;
+  }
+}
 
 export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): Promise<RunRecord> {
   const d = { ...defaultDeps(), ...deps };

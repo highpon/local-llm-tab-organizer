@@ -280,7 +280,7 @@ describe('pending', () => {
     await runCycle('manual', makeDeps());
     const deps = makeDeps();
     const stored = (await loadPending())!.grouping!;
-    await applyPending('grouping', deps);
+    expect(await applyPending('grouping', deps)).toBe('applied');
     expect(deps.applyGrouping).toHaveBeenCalledWith(stored);
     const pending = await loadPending();
     expect(pending?.grouping).toBeUndefined();
@@ -290,6 +290,75 @@ describe('pending', () => {
     await applyPending('dedupe', deps);
     expect(await loadPending()).toBeNull();
     expect((await loadUndo())?.closed).toHaveLength(1);
+  });
+
+  it('applyPending reports busy and applies nothing while a run holds the lock', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    await runCycle('manual', makeDeps());
+    await browser.storage.session.set({ runLock: NOW - 1000 });
+    const deps = makeDeps();
+    expect(await applyPending('dedupe', deps)).toBe('busy');
+    expect(deps.applyDedupe).not.toHaveBeenCalled();
+    expect((await loadPending())?.dedupe).toBeDefined();
+    expect((await browser.storage.session.get('runLock')).runLock).toBe(NOW - 1000);
+  });
+
+  it('applyPending reports busy while a run is in flight in this context', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    await runCycle('manual', makeDeps());
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    const slow = makeDeps({
+      classify: vi.fn(async (tabs: TabInfo[]) => {
+        await gate;
+        return { assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const };
+      }),
+    });
+    const running = runCycle('manual', slow);
+    await vi.waitFor(() => expect(slow.classify).toHaveBeenCalled());
+    const deps = makeDeps();
+    expect(await applyPending('grouping', deps)).toBe('busy');
+    expect(deps.applyGrouping).not.toHaveBeenCalled();
+    release();
+    await running;
+  });
+
+  it('applyPending takes and releases the lock', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    await runCycle('manual', makeDeps());
+    let lockDuringApply: unknown;
+    const deps = makeDeps({
+      applyDedupe: vi.fn(async () => {
+        lockDuringApply = (await browser.storage.session.get('runLock')).runLock;
+        return { closed: [], skipped: 1 };
+      }),
+    });
+    await applyPending('dedupe', deps);
+    expect(lockDuringApply).toBe(NOW);
+    expect((await browser.storage.session.get('runLock')).runLock).toBeUndefined();
+  });
+
+  it('applyPending keeps a pending plan that was replaced while applying', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    await runCycle('manual', makeDeps());
+    const newer: DedupePlan = { closes: [{
+      tabId: 3, keepTabId: 4, windowId: 1, url: 'https://b.com/y', cookieStoreId: 'firefox-default', acrossWindows: false,
+    }] };
+    const deps = makeDeps({
+      applyDedupe: vi.fn(async () => {
+        const p = (await loadPending())!;
+        await browser.storage.local.set({ pending: { ...p, dedupe: newer } });
+        return { closed: [], skipped: 1 };
+      }),
+    });
+    await applyPending('dedupe', deps);
+    expect((await loadPending())?.dedupe).toEqual(newer);
+  });
+
+  it('applyPending with nothing stored does nothing', async () => {
+    const deps = makeDeps();
+    expect(await applyPending('dedupe', deps)).toBe('none');
+    expect(deps.applyDedupe).not.toHaveBeenCalled();
   });
 
   it('discardPending removes only the given kind', async () => {

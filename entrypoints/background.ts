@@ -17,8 +17,7 @@ async function handleMessage(msg: Message): Promise<unknown> {
     case 'undo':
       return undoLast();
     case 'applyPending':
-      await applyPending(msg.kind);
-      return undefined;
+      return applyPending(msg.kind);
     case 'discardPending':
       await discardPending(msg.kind);
       return undefined;
