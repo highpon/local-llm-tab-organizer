@@ -4,6 +4,8 @@ import { chatCompletion, LlmError, type ChatMessage } from './llmClient';
 import type { Settings } from './settings';
 
 const BATCH_SIZE = 50;
+/** Errors meaning the server cannot be reached at all; retrying the next batch would only wait again. */
+const FATAL_KINDS: ReadonlySet<LlmErrorKind> = new Set(['unreachable', 'timeout', 'forbidden']);
 
 export function parseAssignments(content: string, validTabIds: Set<number>): Assignment[] {
   const start = content.indexOf('{');
@@ -45,7 +47,9 @@ function buildMessages(batch: TabInfo[], existingGroupNames: string[]): ChatMess
 
 /**
  * Rule: tabs are classified in batches of 50. A batch that throws LlmError, or tabs
- * the LLM leaves unassigned, are filled by classifyByDomain. method is 'llm' if every
+ * the LLM leaves unassigned, are filled by classifyByDomain. After an unreachable /
+ * timeout / forbidden error the LLM is not called again: every remaining tab is
+ * classified by domain. method is 'llm' if every
  * tab came from the LLM, 'domain' if none did, otherwise 'mixed'. `error` is the
  * first LlmError kind seen. Non-LlmError exceptions propagate.
  */
@@ -58,14 +62,18 @@ export async function classifyTabs(
   const assignments: Assignment[] = [];
   let error: LlmErrorKind | undefined;
   let llmCount = 0;
+  let givenUp = false;
   for (let i = 0; i < tabs.length; i += BATCH_SIZE) {
     const batch = tabs.slice(i, i + BATCH_SIZE);
     let got: Assignment[] = [];
-    try {
-      got = parseAssignments(await chat(buildMessages(batch, existingGroupNames)), new Set(batch.map(t => t.id)));
-    } catch (e) {
-      if (!(e instanceof LlmError)) throw e;
-      error ??= e.kind;
+    if (!givenUp) {
+      try {
+        got = parseAssignments(await chat(buildMessages(batch, existingGroupNames)), new Set(batch.map(t => t.id)));
+      } catch (e) {
+        if (!(e instanceof LlmError)) throw e;
+        error ??= e.kind;
+        if (FATAL_KINDS.has(e.kind)) givenUp = true;
+      }
     }
     assignments.push(...got);
     const done = new Set(got.map(a => a.tabId));

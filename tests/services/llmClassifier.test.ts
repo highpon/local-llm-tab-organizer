@@ -85,6 +85,23 @@ describe('classifyTabs', () => {
     expect(r.error).toBe('timeout');
     expect(r.assignments).toHaveLength(60);
   });
+  it.each(['timeout', 'unreachable', 'forbidden'] as const)(
+    'stops calling the LLM after a %s error and classifies the rest by domain', async (kind) => {
+      const tabs = Array.from({ length: 120 }, (_, i) => tab(i + 1));
+      const chat = vi.fn(async () => { throw new LlmError(kind, 'x'); });
+      const r = await classifyTabs(tabs, [], cfg, chat);
+      expect(chat).toHaveBeenCalledTimes(1);
+      expect(r.method).toBe('domain');
+      expect(r.error).toBe(kind);
+      expect(r.assignments).toHaveLength(120);
+    });
+  it.each(['http', 'badResponse'] as const)('keeps trying later batches after a %s error', async (kind) => {
+    const tabs = Array.from({ length: 120 }, (_, i) => tab(i + 1));
+    const chat = vi.fn(async () => { throw new LlmError(kind, 'x'); });
+    const r = await classifyTabs(tabs, [], cfg, chat);
+    expect(chat).toHaveBeenCalledTimes(3);
+    expect(r.error).toBe(kind);
+  });
   it('batches 120 tabs into 50 + 50 + 20', async () => {
     const tabs = Array.from({ length: 120 }, (_, i) => tab(i + 1));
     const sizes: number[] = [];
