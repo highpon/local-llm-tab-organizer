@@ -108,7 +108,8 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
 }
 
 /**
- * Rule: if the models are not ready, start the download and classify by domain (modelNotReady).
+ * Rule: if the models are not ready, start the download and classify by domain (modelNotReady, or
+ * modelDownloadFailed after a failed download).
  * Otherwise up to 300 tabs are embedded: a tab joins the existing group with the most similar
  * anchor (group title + its first 3 tabs) above JOIN_THRESHOLD; the rest are clustered, and
  * singleton clusters are classified by domain. A cluster is named by the topic model when its
@@ -121,9 +122,10 @@ export async function classifyOnDevice(
 ): Promise<ClassifyResult> {
   const d = { ...defaultDeps(), ...deps };
   if (tabs.length === 0) return { assignments: [], method: 'onDevice' };
-  if ((await d.status()).state !== 'ready') {
+  const { state } = await d.status();
+  if (state !== 'ready') {
     d.ensure();
-    return { assignments: byDomain(tabs), method: 'domain', error: 'modelNotReady' };
+    return { assignments: byDomain(tabs), method: 'domain', error: state === 'error' ? 'modelDownloadFailed' : 'modelNotReady' };
   }
   const head = tabs.slice(0, MAX_ON_DEVICE_TABS);
   const tail = tabs.slice(MAX_ON_DEVICE_TABS);

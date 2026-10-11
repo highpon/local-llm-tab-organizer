@@ -58,7 +58,7 @@ afterEach(() => { vi.useRealTimers(); });
 
 describe('classifyOnDevice', () => {
   it('not ready: domain fallback and download started', async () => {
-    for (const state of ['missing', 'downloading', 'error'] as const) {
+    for (const state of ['missing', 'downloading'] as const) {
       const c = fakeClient({});
       const d = deps(c, { state });
       const r = await classifyOnDevice([tab(1, 'https://github.com/a', 'A')], [], d);
@@ -66,6 +66,13 @@ describe('classifyOnDevice', () => {
       expect(d.ensure).toHaveBeenCalledTimes(1);
       expect(d.client).not.toHaveBeenCalled();
     }
+  });
+
+  it('error status: domain fallback reported as modelDownloadFailed', async () => {
+    const d = deps(fakeClient({}), { state: 'error', error: 'offline' });
+    const r = await classifyOnDevice([tab(1, 'https://github.com/a', 'A')], [], d);
+    expect(r).toMatchObject({ method: 'domain', error: 'modelDownloadFailed' });
+    expect(d.ensure).toHaveBeenCalledTimes(1);
   });
 
   it('joins an existing group', async () => {
