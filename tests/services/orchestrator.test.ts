@@ -264,6 +264,26 @@ describe('runCycle', () => {
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBe('ok');
   });
 
+  it('pings the runtime every 20s while classify runs and stops afterwards', async () => {
+    const ping = vi.spyOn(browser.runtime, 'getPlatformInfo').mockResolvedValue({} as never);
+    vi.useFakeTimers();
+    try {
+      const deps = makeDeps({
+        classify: vi.fn(async (tabs: TabInfo[]) => {
+          await vi.advanceTimersByTimeAsync(45_000);
+          return { assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'llm' as const };
+        }),
+      });
+      await runCycle('manual', deps);
+      expect(ping).toHaveBeenCalledTimes(2);
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(ping).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+      ping.mockRestore();
+    }
+  });
+
   it('does not touch llmStatus when the LLM is disabled', async () => {
     await runCycle('manual', makeDeps());
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBeUndefined();

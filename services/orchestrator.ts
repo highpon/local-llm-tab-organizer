@@ -58,6 +58,23 @@ async function updateLlmStatus(error: LlmErrorKind | undefined, d: RunDeps): Pro
   }
 }
 
+const KEEP_ALIVE_MS = 20_000;
+
+/**
+ * A slow LLM can outlast the idle timeout of the MV3 event page; an extension API call
+ * every 20 s resets that timer so the run can finish and be recorded.
+ */
+async function whileKeepingAlive<T>(fn: () => Promise<T>): Promise<T> {
+  const timer = setInterval(() => {
+    browser.runtime.getPlatformInfo().catch(() => {});
+  }, KEEP_ALIVE_MS);
+  try {
+    return await fn();
+  } finally {
+    clearInterval(timer);
+  }
+}
+
 const countTabs = (p: GroupingPlan): number =>
   [...p.addToExisting, ...p.createNew].reduce((n, g) => n + g.tabs.length, 0);
 
@@ -147,7 +164,7 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
         let plan: GroupingPlan | undefined;
         if (candidates.length > 0) {
           const names = [...new Set(snap.groups.map((g) => g.title).filter((t) => t !== ''))];
-          const result = await d.classify(candidates, names, settings.llm);
+          const result = await whileKeepingAlive(() => d.classify(candidates, names, settings.llm));
           record.method = result.method;
           if (settings.llm.enabled) await updateLlmStatus(result.error, d);
           plan = planGrouping(snap.tabs, snap.groups, result.assignments);
