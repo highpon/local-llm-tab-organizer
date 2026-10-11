@@ -3,7 +3,7 @@
     "message": "tab-tidy"
   },
   "extDescription": {
-    "message": "重複タブを自動でまとめ、ローカル LLM またはドメインでタブグループに整理します。"
+    "message": "重複タブを自動でまとめ、端末内 AI・ローカル LLM・ドメインのいずれかでタブグループに整理します。"
   },
   "popupTitle": {
     "message": "Tab Tidy"

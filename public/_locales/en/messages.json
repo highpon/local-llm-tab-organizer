@@ -3,7 +3,7 @@
     "message": "tab-tidy"
   },
   "extDescription": {
-    "message": "Merges duplicate tabs and sorts tabs into tab groups using a local LLM or by domain."
+    "message": "Merges duplicate tabs and sorts tabs into tab groups using on-device AI, a local LLM, or by domain."
   },
   "popupTitle": {
     "message": "Tab Tidy"

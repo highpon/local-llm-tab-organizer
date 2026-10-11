@@ -3,7 +3,7 @@
 A Firefox extension that tidies your open tabs on a schedule.
 
 - **Merge duplicate tabs**: finds tabs showing the same page (by normalized URL) and closes all but the one you viewed most recently.
-- **Sort tabs into tab groups**: puts ungrouped tabs into Firefox's native tab groups. With a local LLM configured (Ollama, LM Studio, or any OpenAI-compatible API) tabs are grouped by content; without one, they are grouped by domain.
+- **Sort tabs into tab groups**: puts ungrouped tabs into Firefox's native tab groups, grouped by content with an on-device AI by default. The models (about 175 MB) are downloaded once from huggingface.co; tab titles and URLs never leave your computer. A local LLM server (Ollama, LM Studio, or any OpenAI-compatible API) or plain domain grouping can be chosen instead.
 - **Runs periodically**: at a fixed interval, and only while you are not using the browser.
 - **Safety**: never closes pinned, active, or audio-playing tabs; re-checks every tab right before acting; the last run can be undone.
 
@@ -45,6 +45,14 @@ A temporary add-on is removed when Firefox restarts.
 
 The UI follows the browser language: English and Japanese are supported (`public/_locales/`), with English as the default.
 
+### On-device AI (default)
+
+Nothing to set up. On the first run the extension downloads two models from huggingface.co (about 175 MB) and groups by domain until the download finishes; later runs group by content. The settings page shows the download status and can download the models right away or delete them.
+
+- Tabs are embedded with `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (English and Japanese work) and clustered; similar tabs also join existing groups.
+- Groups of mostly English titles are named by `Mozilla/smart-tab-topic` (the model Firefox's own tab grouping uses); others are named by their most distinctive words, or by domain.
+- Inference runs in a Worker with ONNX Runtime WASM bundled in the extension, so the extension is about 27 MB.
+
 ### Using a local LLM (Ollama)
 
 Ollama rejects requests from extensions unless `OLLAMA_ORIGINS` allows them:
@@ -67,7 +75,7 @@ Then, on the extension's settings page:
 
 1. Keep the base URL at `http://localhost:11434/v1` (the default).
 2. Click "Test connection" and allow the permission prompt.
-3. Pick a model from the suggestions, enable the LLM, and save.
+3. Pick a model from the suggestions, select "Local LLM server" as the classification method, and save.
 
 If `OLLAMA_ORIGINS` is missing, the connection test shows a 403 error with setup instructions. Whenever the LLM cannot be reached, the extension falls back to grouping by domain.
 

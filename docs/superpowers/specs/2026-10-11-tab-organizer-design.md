@@ -79,6 +79,7 @@ services/             Talks to the browser and the outside world
 
 - Only tab titles and URLs are sent to the LLM. Page contents are never read
 - Data is sent only to the LLM server the user configures, and nowhere else
+- With the on-device classifier (the default, see [`2026-10-11-on-device-classifier-design.md`](2026-10-11-on-device-classifier-design.md)) no tab data leaves the device; the only requests are GETs for model files on huggingface.co
 
 ## 4. Data flow
 
@@ -166,7 +167,7 @@ Keep the result of each run (time, trigger, tabs closed, tabs grouped, classific
 | `dedupe.mode` | `auto` | `auto` / `suggest` / `off` |
 | `dedupe.acrossWindows` | `false` | Whether to look for duplicates across windows |
 | `grouping.mode` | `suggest` | `auto` / `suggest` / `off` |
-| `llm.enabled` | `false` | Whether to use the LLM |
+| `classifier` | `onDevice` | `onDevice` / `llm` / `domain`. Replaces `llm.enabled` (stored `true` migrates to `llm`) |
 | `llm.baseUrl` | `http://localhost:11434/v1` | Base URL of the OpenAI-compatible API |
 | `llm.model` | (empty) | Model name. The connection test lists candidates from `/v1/models` |
 | `llm.timeoutSeconds` | `30` | Timeout per request |
@@ -202,7 +203,6 @@ Load the extension in WXT development mode and check the following:
 
 ## 8. Out of scope (future candidates)
 
-- Running the LLM inside the browser (WebLLM / Transformers.js / Firefox ML API)
 - LLM-based content duplicate detection (suggestions only)
 - Triggering runs by tab count thresholds
 - A sidebar listing categories
