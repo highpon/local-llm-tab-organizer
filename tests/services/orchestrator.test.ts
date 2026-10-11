@@ -237,7 +237,7 @@ describe('runCycle', () => {
   });
 
   it('notifies about a 403 only on the transition into the error state', async () => {
-    await setSettings({ llm: { ...DEFAULT_SETTINGS.llm, enabled: true } });
+    await setSettings({ classifier: 'llm' });
     await browser.storage.local.set({ llmStatus: 'ok' });
     const classify = vi.fn(async (tabs: TabInfo[]) => ({
       assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const, error: 'forbidden' as const,
@@ -253,7 +253,7 @@ describe('runCycle', () => {
   });
 
   it('uses the generic message for other LLM errors and resets status on success', async () => {
-    await setSettings({ llm: { ...DEFAULT_SETTINGS.llm, enabled: true } });
+    await setSettings({ classifier: 'llm' });
     const err = vi.fn(async (tabs: TabInfo[]) => ({
       assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const, error: 'timeout' as const,
     }));

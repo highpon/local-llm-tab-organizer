@@ -217,6 +217,9 @@
   "methodDomain": {
     "message": "Domain"
   },
+  "methodOnDevice": {
+    "message": "On-device AI"
+  },
   "methodMixed": {
     "message": "Mixed"
   },

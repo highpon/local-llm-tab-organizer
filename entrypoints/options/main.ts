@@ -9,7 +9,9 @@ const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as 
 
 const modeLabels = (): [Mode, string][] => [['auto', t('modeAuto')], ['suggest', t('modeSuggest')], ['off', t('modeOff')]];
 const triggerLabels = () => ({ alarm: t('triggerAlarm'), idle: t('triggerIdle'), manual: t('triggerManual') });
-const methodLabels = () => ({ llm: t('methodLlm'), domain: t('methodDomain'), mixed: t('methodMixed') });
+const methodLabels = () => ({
+  llm: t('methodLlm'), onDevice: t('methodOnDevice'), domain: t('methodDomain'), mixed: t('methodMixed'),
+});
 
 const errorText = (kind: string): string | undefined => ({
   unreachable: t('errUnreachable'),
@@ -38,7 +40,7 @@ function fillForm(s: Settings): void {
   $<HTMLSelectElement>('dedupeMode').value = s.dedupe.mode;
   $<HTMLInputElement>('acrossWindows').checked = s.dedupe.acrossWindows;
   $<HTMLSelectElement>('groupingMode').value = s.grouping.mode;
-  $<HTMLInputElement>('llmEnabled').checked = s.llm.enabled;
+  $<HTMLInputElement>('llmEnabled').checked = s.classifier === 'llm';
   $<HTMLInputElement>('baseUrl').value = s.llm.baseUrl;
   $<HTMLInputElement>('model').value = s.llm.model;
   $<HTMLInputElement>('timeoutSeconds').value = String(s.llm.timeoutSeconds);
@@ -62,8 +64,8 @@ function readForm(): Settings {
       acrossWindows: $<HTMLInputElement>('acrossWindows').checked,
     },
     grouping: { mode: $<HTMLSelectElement>('groupingMode').value as Mode },
+    classifier: $<HTMLInputElement>('llmEnabled').checked ? 'llm' : 'onDevice',
     llm: {
-      enabled: $<HTMLInputElement>('llmEnabled').checked,
       baseUrl: $<HTMLInputElement>('baseUrl').value.trim(),
       model: $<HTMLInputElement>('model').value.trim(),
       timeoutSeconds: readInt('timeoutSeconds', 1, t('fieldTimeout')),
@@ -119,7 +121,7 @@ $('test').addEventListener('click', async () => {
     if (!granted) return show('testResult', t('permissionDenied'), true);
     const timeoutSeconds = Math.max(1, Number($<HTMLInputElement>('timeoutSeconds').value) || 30);
     const models = await listModels({
-      enabled: true, baseUrl, model: '', timeoutSeconds,
+      baseUrl, model: '', timeoutSeconds,
     });
     const list = $('models');
     list.replaceChildren();

@@ -1,6 +1,6 @@
 import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
-import type { DedupePlan, GroupingPlan, LlmErrorKind, Snapshot, TabInfo } from '../core/types';
+import type { ClassifyErrorKind, DedupePlan, GroupingPlan, Snapshot, TabInfo } from '../core/types';
 import { t } from './i18n';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
 import { discardPending, loadPending, planSignature, savePendingKind, type PendingKind } from './pending';
@@ -46,7 +46,7 @@ async function acquireLock(now: number): Promise<boolean> {
   return true;
 }
 
-async function updateLlmStatus(error: LlmErrorKind | undefined, d: RunDeps): Promise<void> {
+async function updateLlmStatus(error: ClassifyErrorKind | undefined, d: RunDeps): Promise<void> {
   const prev = (await browser.storage.local.get(LLM_STATUS_KEY))[LLM_STATUS_KEY] as string | undefined;
   const next = error ?? 'ok';
   await browser.storage.local.set({ [LLM_STATUS_KEY]: next });
@@ -135,7 +135,7 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
     } else {
       const settings = await loadSettings();
       // A status from when the LLM was on would be stale and misleading in the popup.
-      if (!settings.llm.enabled) await browser.storage.local.remove(LLM_STATUS_KEY);
+      if (settings.classifier !== 'llm') await browser.storage.local.remove(LLM_STATUS_KEY);
       let snap = await d.snapshot();
 
       if (settings.dedupe.mode !== 'off') {
@@ -165,7 +165,7 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
           const names = [...new Set(snap.groups.map((g) => g.title).filter((t) => t !== ''))];
           const result = await whileKeepingAlive(() => d.classify(candidates, names, settings.llm));
           record.method = result.method;
-          if (settings.llm.enabled) await updateLlmStatus(result.error, d);
+          if (settings.classifier === 'llm') await updateLlmStatus(result.error, d);
           plan = planGrouping(snap.tabs, snap.groups, result.assignments);
           n = countTabs(plan);
         }

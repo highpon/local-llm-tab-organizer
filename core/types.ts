@@ -20,5 +20,9 @@ export interface GroupingPlan {
   addToExisting: { groupId: number; tabs: GroupAdd[] }[];
   createNew: { windowId: number; title: string; tabs: GroupAdd[] }[];
 }
-export type ClassifyMethod = 'llm' | 'domain' | 'mixed';
+export type ClassifyMethod = 'llm' | 'onDevice' | 'domain' | 'mixed';
 export type LlmErrorKind = 'unreachable' | 'timeout' | 'forbidden' | 'http' | 'badResponse';
+export type OnDeviceErrorKind = 'modelNotReady' | 'modelDownloadFailed' | 'inferenceFailed';
+export type ClassifyErrorKind = LlmErrorKind | OnDeviceErrorKind;
+/** An existing tab group as a join target: its title and the tabs in it. */
+export interface ExistingGroup { title: string; tabs: TabInfo[] }

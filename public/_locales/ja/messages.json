@@ -217,6 +217,9 @@
   "methodDomain": {
     "message": "ドメイン"
   },
+  "methodOnDevice": {
+    "message": "端末内 AI"
+  },
   "methodMixed": {
     "message": "混合"
   },

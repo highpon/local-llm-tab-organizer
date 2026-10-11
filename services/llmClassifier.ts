@@ -1,5 +1,5 @@
 import { classifyByDomain } from '../core/classifyByDomain';
-import type { Assignment, ClassifyMethod, LlmErrorKind, TabInfo } from '../core/types';
+import type { Assignment, ClassifyErrorKind, ClassifyMethod, LlmErrorKind, TabInfo } from '../core/types';
 import { uiLanguage } from './i18n';
 import { chatCompletion, LlmError, type ChatMessage } from './llmClient';
 import type { Settings } from './settings';
@@ -30,7 +30,7 @@ export function parseAssignments(content: string, validTabIds: Set<number>): Ass
   return out;
 }
 
-export interface ClassifyResult { assignments: Assignment[]; method: ClassifyMethod; error?: LlmErrorKind }
+export interface ClassifyResult { assignments: Assignment[]; method: ClassifyMethod; error?: ClassifyErrorKind }
 
 function buildMessages(batch: TabInfo[], existingGroupNames: string[]): ChatMessage[] {
   const system =
@@ -55,8 +55,6 @@ export async function classifyTabs(
   tabs: TabInfo[], existingGroupNames: string[], cfg: Settings['llm'],
   chat: (messages: ChatMessage[]) => Promise<string> = m => chatCompletion(cfg, m),
 ): Promise<ClassifyResult> {
-  if (!cfg.enabled) return { assignments: classifyByDomain(tabs), method: 'domain' };
-
   const assignments: Assignment[] = [];
   let error: LlmErrorKind | undefined;
   let llmCount = 0;
