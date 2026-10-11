@@ -1,6 +1,6 @@
 {
   "name": "tab-tidy",
-  "description": "重複タブを自動でまとめ、ローカル LLM またはドメインでタブグループに整理します",
+  "description": "Merges duplicate tabs and sorts tabs into tab groups using a local LLM or by domain.",
   "private": true,
   "version": "0.1.0",
   "type": "module",

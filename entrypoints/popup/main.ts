@@ -1,4 +1,5 @@
 import type { DedupePlan, GroupingPlan } from '../../core/types';
+import { formatTime, localizeDocument, t } from '../../services/i18n';
 import { loadPending } from '../../services/pending';
 import { listRuns, type RunRecord } from '../../services/runHistory';
 import type { Message } from '../../services/scheduler';
@@ -41,22 +42,22 @@ async function tabList(tabs: { tabId: number; url: string }[]): Promise<HTMLULis
 async function groupTitle(groupId: number): Promise<string> {
   try {
     const g = await browser.tabGroups.get(groupId);
-    return g.title || '既存グループ';
+    return g.title || t('existingGroup');
   } catch {
-    return '既存グループ';
+    return t('existingGroup');
   }
 }
 
 function actions(kind: 'dedupe' | 'grouping'): HTMLDivElement {
   const div = el('div');
-  const apply = el('button', '適用');
-  const discard = el('button', '破棄');
+  const apply = el('button', t('apply'));
+  const discard = el('button', t('discard'));
   const act = (type: 'applyPending' | 'discardPending') => async () => {
     apply.disabled = discard.disabled = true;
     try {
       const res = await send({ type, kind });
-      if (res === 'busy') setMessage('実行中です。しばらくしてからもう一度お試しください');
-      else setMessage(type === 'applyPending' ? '適用しました' : '破棄しました');
+      if (res === 'busy') setMessage(t('busy'));
+      else setMessage(type === 'applyPending' ? t('applied') : t('discarded'));
     } catch (e) {
       setMessage(String(e), true);
     }
@@ -72,13 +73,13 @@ async function renderDedupe(plan: DedupePlan): Promise<HTMLElement | null> {
   const ul = await tabList(plan.closes.map((c) => ({ tabId: c.tabId, url: c.url })));
   if (!ul) return null;
   const sec = el('section');
-  sec.append(el('h2', '重複の統合（閉じるタブ）'), ul, actions('dedupe'));
+  sec.append(el('h2', t('dedupeHeading')), ul, actions('dedupe'));
   return sec;
 }
 
 async function renderGrouping(plan: GroupingPlan): Promise<HTMLElement | null> {
   const sec = el('section');
-  sec.append(el('h2', 'グループ分けの提案'));
+  sec.append(el('h2', t('groupingHeading')));
   let any = false;
   const entries: { title: string; tabs: { tabId: number; url: string }[] }[] = [];
   for (const g of plan.createNew) entries.push({ title: g.title, tabs: g.tabs.map((t) => ({ tabId: t.tabId, url: t.url })) });
@@ -97,20 +98,20 @@ async function renderGrouping(plan: GroupingPlan): Promise<HTMLElement | null> {
 }
 
 function describeRun(r: RunRecord): string {
-  const when = new Date(r.at).toLocaleString('ja-JP');
-  if (r.skipped) return `${when}: 他の実行中のためスキップ`;
-  const base = `${when}: 閉じた ${r.closed} 件 / グループ化 ${r.grouped} 件`;
-  return r.error ? `${base}（エラー: ${r.error}）` : base;
+  const when = formatTime(r.at);
+  if (r.skipped) return t('runSkipped', when);
+  const base = t('runSummary', when, r.closed, r.grouped);
+  return r.error ? t('runWithError', base, r.error) : base;
 }
 
-const LLM_TEXT: Record<string, string> = {
-  ok: '正常',
-  unreachable: '接続できません',
-  timeout: 'タイムアウトしました',
-  forbidden: '接続が拒否されました（OLLAMA_ORIGINS の設定が必要です）',
-  http: 'サーバーがエラーを返しました',
-  badResponse: '応答を解釈できませんでした',
-};
+const llmText = (status: string): string => ({
+  ok: t('llmOk'),
+  unreachable: t('llmUnreachable'),
+  timeout: t('llmTimeout'),
+  forbidden: t('llmForbidden'),
+  http: t('llmHttp'),
+  badResponse: t('llmBadResponse'),
+} as Record<string, string>)[status] ?? status;
 
 async function render(): Promise<void> {
   const [pending, undo, runs, status] = await Promise.all([
@@ -133,18 +134,18 @@ async function render(): Promise<void> {
     if (s) pendingEl.append(s);
   }
 
-  $('last').textContent = runs[0] ? describeRun(runs[0]) : 'まだ実行されていません';
+  $('last').textContent = runs[0] ? describeRun(runs[0]) : t('neverRun');
 
   const llm = $('llm');
   llm.replaceChildren();
   const st = status.llmStatus as string | undefined;
   if (st === undefined) {
-    llm.textContent = '未使用';
+    llm.textContent = t('llmUnused');
   } else {
-    llm.append(el('span', LLM_TEXT[st] ?? st));
+    llm.append(el('span', llmText(st)));
     if (st !== 'ok') {
       llm.append(' ');
-      const link = el('a', '設定を開く');
+      const link = el('a', t('openSettings'));
       link.href = '#';
       link.addEventListener('click', (ev) => {
         ev.preventDefault();
@@ -158,10 +159,10 @@ async function render(): Promise<void> {
 $('run').addEventListener('click', async () => {
   const btn = $<HTMLButtonElement>('run');
   btn.disabled = true;
-  setMessage('実行中...');
+  setMessage(t('running'));
   try {
     const r = (await send({ type: 'runNow' })) as RunRecord | undefined;
-    setMessage(r ? describeRun(r) : '完了しました', !!r?.error);
+    setMessage(r ? describeRun(r) : t('done'), !!r?.error);
   } catch (e) {
     setMessage(String(e), true);
   }
@@ -173,7 +174,7 @@ $('undo').addEventListener('click', async () => {
   $<HTMLButtonElement>('undo').disabled = true; // render() re-enables it only if a record remains
   try {
     const r = (await send({ type: 'undo' })) as { restored: number; ungrouped: number } | undefined;
-    setMessage(r ? `復元 ${r.restored} 件 / グループ解除 ${r.ungrouped} 件` : '元に戻しました');
+    setMessage(r ? t('undoResult', r.restored, r.ungrouped) : t('undone'));
   } catch (e) {
     setMessage(String(e), true);
   }
@@ -184,4 +185,5 @@ $('options').addEventListener('click', () => {
   void browser.runtime.openOptionsPage();
 });
 
+localizeDocument();
 void render();

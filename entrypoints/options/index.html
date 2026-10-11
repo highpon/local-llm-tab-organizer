@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Tab Tidy 設定</title>
+<title data-i18n="optionsTitle">Tab Tidy settings</title>
 <meta name="color-scheme" content="light dark">
 <style>
   :root { color-scheme: light dark; }
@@ -19,41 +19,41 @@
 </style>
 </head>
 <body>
-<h1>Tab Tidy 設定</h1>
+<h1 data-i18n="optionsTitle"></h1>
 <form id="form" novalidate>
   <fieldset>
-    <legend>重複タブの統合</legend>
-    <label>モード
+    <legend data-i18n="dedupeLegend"></legend>
+    <label><span data-i18n="modeLabel"></span>
       <select id="dedupeMode"></select>
     </label>
-    <label><input type="checkbox" id="acrossWindows"> ウィンドウをまたいで統合する</label>
+    <label><input type="checkbox" id="acrossWindows"> <span data-i18n="acrossWindowsLabel"></span></label>
   </fieldset>
   <fieldset>
-    <legend>グループ分け</legend>
-    <label>モード
+    <legend data-i18n="groupingLegend"></legend>
+    <label><span data-i18n="modeLabel"></span>
       <select id="groupingMode"></select>
     </label>
   </fieldset>
   <fieldset>
-    <legend>LLM（Ollama など OpenAI 互換 API）</legend>
-    <label><input type="checkbox" id="llmEnabled"> LLM を使って分類する</label>
-    <label>ベース URL <input type="url" id="baseUrl"></label>
-    <label>モデル <input type="text" id="model" name="model" list="models" autocomplete="off"></label>
+    <legend data-i18n="llmLegend"></legend>
+    <label><input type="checkbox" id="llmEnabled"> <span data-i18n="llmEnabledLabel"></span></label>
+    <label><span data-i18n="baseUrlLabel"></span> <input type="url" id="baseUrl"></label>
+    <label><span data-i18n="modelLabel"></span> <input type="text" id="model" name="model" list="models" autocomplete="off"></label>
     <datalist id="models"></datalist>
-    <label>タイムアウト（秒） <input type="number" id="timeoutSeconds" min="1" step="1"></label>
-    <button type="button" id="test">接続テスト</button>
+    <label><span data-i18n="timeoutLabel"></span> <input type="number" id="timeoutSeconds" min="1" step="1"></label>
+    <button type="button" id="test" data-i18n="testButton"></button>
     <div id="testResult" role="status"></div>
   </fieldset>
   <fieldset>
-    <legend>実行スケジュール</legend>
-    <label>実行間隔（分） <input type="number" id="intervalMinutes" min="1" step="1"></label>
-    <label>アイドル判定（秒、15 以上） <input type="number" id="idleSeconds" min="15" step="1"></label>
+    <legend data-i18n="scheduleLegend"></legend>
+    <label><span data-i18n="intervalLabel"></span> <input type="number" id="intervalMinutes" min="1" step="1"></label>
+    <label><span data-i18n="idleLabel"></span> <input type="number" id="idleSeconds" min="15" step="1"></label>
   </fieldset>
-  <button type="submit" id="save">保存</button><span id="status" role="status"></span>
+  <button type="submit" id="save" data-i18n="save"></button><span id="status" role="status"></span>
 </form>
-<h2>実行履歴</h2>
+<h2 data-i18n="historyHeading"></h2>
 <table>
-  <thead><tr><th>日時</th><th>契機</th><th>閉じた</th><th>グループ化</th><th>方式</th><th>備考</th></tr></thead>
+  <thead><tr><th data-i18n="colTime"></th><th data-i18n="colTrigger"></th><th data-i18n="colClosed"></th><th data-i18n="colGrouped"></th><th data-i18n="colMethod"></th><th data-i18n="colNotes"></th></tr></thead>
   <tbody id="history"></tbody>
 </table>
 <script type="module" src="./main.ts"></script>

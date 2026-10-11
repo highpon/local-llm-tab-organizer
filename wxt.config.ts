@@ -3,7 +3,9 @@ import { defineConfig } from 'wxt';
 export default defineConfig({
   manifestVersion: 3,
   manifest: {
-    name: 'tab-tidy',
+    name: '__MSG_extName__',
+    description: '__MSG_extDescription__',
+    default_locale: 'en',
     permissions: ['tabs', 'tabGroups', 'alarms', 'idle', 'storage', 'notifications', 'sessions'],
     optional_host_permissions: ['http://*/*', 'https://*/*'],
     icons: { 48: 'icon.svg', 96: 'icon.svg' },

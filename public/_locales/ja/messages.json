@@ -1,0 +1,317 @@
+{
+  "extName": {
+    "message": "tab-tidy"
+  },
+  "extDescription": {
+    "message": "重複タブを自動でまとめ、ローカル LLM またはドメインでタブグループに整理します。"
+  },
+  "popupTitle": {
+    "message": "Tab Tidy"
+  },
+  "runNow": {
+    "message": "今すぐ実行"
+  },
+  "undo": {
+    "message": "元に戻す"
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "lastRunHeading": {
+    "message": "直近の実行"
+  },
+  "llmStatusHeading": {
+    "message": "LLM の状態"
+  },
+  "existingGroup": {
+    "message": "既存グループ"
+  },
+  "apply": {
+    "message": "適用"
+  },
+  "discard": {
+    "message": "破棄"
+  },
+  "busy": {
+    "message": "実行中です。しばらくしてからもう一度お試しください"
+  },
+  "applied": {
+    "message": "適用しました"
+  },
+  "discarded": {
+    "message": "破棄しました"
+  },
+  "dedupeHeading": {
+    "message": "重複の統合（閉じるタブ）"
+  },
+  "groupingHeading": {
+    "message": "グループ分けの提案"
+  },
+  "runSkipped": {
+    "message": "$TIME$: 他の実行中のためスキップ",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      }
+    }
+  },
+  "runSummary": {
+    "message": "$TIME$: 閉じた $CLOSED$ 件 / グループ化 $GROUPED$ 件",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "closed": {
+        "content": "$2"
+      },
+      "grouped": {
+        "content": "$3"
+      }
+    }
+  },
+  "runWithError": {
+    "message": "$SUMMARY$（エラー: $ERROR$）",
+    "placeholders": {
+      "summary": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "llmOk": {
+    "message": "正常"
+  },
+  "llmUnreachable": {
+    "message": "接続できません"
+  },
+  "llmTimeout": {
+    "message": "タイムアウトしました"
+  },
+  "llmForbidden": {
+    "message": "接続が拒否されました（OLLAMA_ORIGINS の設定が必要です）"
+  },
+  "llmHttp": {
+    "message": "サーバーがエラーを返しました"
+  },
+  "llmBadResponse": {
+    "message": "応答を解釈できませんでした"
+  },
+  "neverRun": {
+    "message": "まだ実行されていません"
+  },
+  "llmUnused": {
+    "message": "未使用"
+  },
+  "openSettings": {
+    "message": "設定を開く"
+  },
+  "running": {
+    "message": "実行中..."
+  },
+  "done": {
+    "message": "完了しました"
+  },
+  "undoResult": {
+    "message": "復元 $RESTORED$ 件 / グループ解除 $UNGROUPED$ 件",
+    "placeholders": {
+      "restored": {
+        "content": "$1"
+      },
+      "ungrouped": {
+        "content": "$2"
+      }
+    }
+  },
+  "undone": {
+    "message": "元に戻しました"
+  },
+  "optionsTitle": {
+    "message": "Tab Tidy 設定"
+  },
+  "dedupeLegend": {
+    "message": "重複タブの統合"
+  },
+  "modeLabel": {
+    "message": "モード"
+  },
+  "acrossWindowsLabel": {
+    "message": "ウィンドウをまたいで統合する"
+  },
+  "groupingLegend": {
+    "message": "グループ分け"
+  },
+  "llmLegend": {
+    "message": "LLM（Ollama など OpenAI 互換 API）"
+  },
+  "llmEnabledLabel": {
+    "message": "LLM を使って分類する"
+  },
+  "baseUrlLabel": {
+    "message": "ベース URL"
+  },
+  "modelLabel": {
+    "message": "モデル"
+  },
+  "timeoutLabel": {
+    "message": "タイムアウト（秒）"
+  },
+  "testButton": {
+    "message": "接続テスト"
+  },
+  "scheduleLegend": {
+    "message": "実行スケジュール"
+  },
+  "intervalLabel": {
+    "message": "実行間隔（分）"
+  },
+  "idleLabel": {
+    "message": "アイドル判定（秒、15 以上）"
+  },
+  "save": {
+    "message": "保存"
+  },
+  "historyHeading": {
+    "message": "実行履歴"
+  },
+  "colTime": {
+    "message": "日時"
+  },
+  "colTrigger": {
+    "message": "契機"
+  },
+  "colClosed": {
+    "message": "閉じた"
+  },
+  "colGrouped": {
+    "message": "グループ化"
+  },
+  "colMethod": {
+    "message": "方式"
+  },
+  "colNotes": {
+    "message": "備考"
+  },
+  "modeAuto": {
+    "message": "自動"
+  },
+  "modeSuggest": {
+    "message": "提案"
+  },
+  "modeOff": {
+    "message": "オフ"
+  },
+  "triggerAlarm": {
+    "message": "定期"
+  },
+  "triggerIdle": {
+    "message": "アイドル"
+  },
+  "triggerManual": {
+    "message": "手動"
+  },
+  "methodLlm": {
+    "message": "LLM"
+  },
+  "methodDomain": {
+    "message": "ドメイン"
+  },
+  "methodMixed": {
+    "message": "混合"
+  },
+  "ollamaGuide": {
+    "message": "Ollama が拡張機能からの接続を拒否しました。環境変数 OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください。"
+  },
+  "errUnreachable": {
+    "message": "サーバーに接続できません。URL と Ollama の起動状態を確認してください。"
+  },
+  "errTimeout": {
+    "message": "タイムアウトしました。"
+  },
+  "errHttp": {
+    "message": "サーバーがエラーを返しました。"
+  },
+  "errBadResponse": {
+    "message": "応答を解釈できませんでした。"
+  },
+  "fieldTimeout": {
+    "message": "タイムアウト"
+  },
+  "fieldInterval": {
+    "message": "実行間隔"
+  },
+  "fieldIdle": {
+    "message": "アイドル判定"
+  },
+  "intRequired": {
+    "message": "$FIELD$は $MIN$ 以上の整数を入力してください。",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      },
+      "min": {
+        "content": "$2"
+      }
+    }
+  },
+  "invalidBaseUrl": {
+    "message": "ベース URL が正しくありません。"
+  },
+  "connecting": {
+    "message": "接続中..."
+  },
+  "permissionDenied": {
+    "message": "この URL への接続が許可されませんでした。"
+  },
+  "connected": {
+    "message": "接続しました（モデル $COUNT$ 件）",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "modelRequired": {
+    "message": "LLM を使うにはモデル名を入力してください（「接続テスト」で候補を表示できます）。"
+  },
+  "llmPermissionDenied": {
+    "message": "LLM の接続先が許可されなかったため、LLM は有効にしていません。"
+  },
+  "saved": {
+    "message": "保存しました"
+  },
+  "skipped": {
+    "message": "スキップ"
+  },
+  "notifyForbidden": {
+    "message": "LLM に接続できません（403）。OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください"
+  },
+  "notifyLlmFallback": {
+    "message": "LLM に接続できません。ドメイン単位の分類に切り替えました"
+  },
+  "notifyClosed": {
+    "message": "重複タブを $COUNT$ 件閉じました",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "notifyDedupeSuggest": {
+    "message": "重複タブが $COUNT$ 件あります。ツールバーのボタンから確認できます",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "notifyGroupingSuggest": {
+    "message": "$COUNT$ 枚のタブの分類案があります。ツールバーのボタンから確認できます",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { classifyByDomain } from '../core/classifyByDomain';
 import type { Assignment, ClassifyMethod, LlmErrorKind, TabInfo } from '../core/types';
+import { uiLanguage } from './i18n';
 import { chatCompletion, LlmError, type ChatMessage } from './llmClient';
 import type { Settings } from './settings';
 
@@ -31,17 +32,13 @@ export function parseAssignments(content: string, validTabIds: Set<number>): Ass
 
 export interface ClassifyResult { assignments: Assignment[]; method: ClassifyMethod; error?: LlmErrorKind }
 
-function uiLanguage(): string {
-  try { return browser.i18n?.getUILanguage?.() ?? 'en'; } catch { return 'en'; }
-}
-
 function buildMessages(batch: TabInfo[], existingGroupNames: string[]): ChatMessage[] {
   const system =
-    'タブを分類する。既存グループに合うならその名前をそのまま使う。' +
-    '合わなければ短い名詞句で新しい名前を作る。' +
-    `名前は ${uiLanguage()} で書く。` +
-    '出力は {"assignments":[{"tabId":number,"group":string}]} の JSON だけ。\n' +
-    `既存グループ: ${JSON.stringify(existingGroupNames)}`;
+    'Classify the browser tabs into groups. If an existing group fits a tab, use that group name exactly. ' +
+    'Otherwise create a new name as a short noun phrase. ' +
+    `Write new group names in the language with locale code "${uiLanguage()}". ` +
+    'Output only JSON of the form {"assignments":[{"tabId":number,"group":string}]}.\n' +
+    `Existing groups: ${JSON.stringify(existingGroupNames)}`;
   const tabs = batch.map(t => ({ id: t.id, title: t.title, url: t.url })); // privacy: nothing else
   return [{ role: 'system', content: system }, { role: 'user', content: JSON.stringify({ tabs }) }];
 }

@@ -1,6 +1,7 @@
 import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
 import type { DedupePlan, GroupingPlan, LlmErrorKind, Snapshot, TabInfo } from '../core/types';
+import { t } from './i18n';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
 import { discardPending, loadPending, planSignature, savePendingKind, type PendingKind } from './pending';
 import { appendRun, type RunRecord, type Trigger } from './runHistory';
@@ -21,10 +22,6 @@ export interface RunDeps {
 const LOCK_KEY = 'runLock';
 const LOCK_TTL_MS = 5 * 60_000;
 const LLM_STATUS_KEY = 'llmStatus';
-
-const MSG_FORBIDDEN =
-  'LLM に接続できません（403）。OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください';
-const MSG_LLM_FALLBACK = 'LLM に接続できません。ドメイン単位の分類に切り替えました';
 
 function defaultDeps(): RunDeps {
   return {
@@ -54,7 +51,7 @@ async function updateLlmStatus(error: LlmErrorKind | undefined, d: RunDeps): Pro
   const next = error ?? 'ok';
   await browser.storage.local.set({ [LLM_STATUS_KEY]: next });
   if (next !== 'ok' && (prev === undefined || prev === 'ok')) {
-    await d.notify('tab-tidy-llm', next === 'forbidden' ? MSG_FORBIDDEN : MSG_LLM_FALLBACK);
+    await d.notify('tab-tidy-llm', next === 'forbidden' ? t('notifyForbidden') : t('notifyLlmFallback'));
   }
 }
 
@@ -147,12 +144,12 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
           if (settings.dedupe.mode === 'auto') {
             closed.push(...(await d.applyDedupe(plan)).closed);
             snap = await d.snapshot();
-            if (closed.length > 0) await d.notify('tab-tidy-dedupe', `重複タブを ${closed.length} 件閉じました`);
+            if (closed.length > 0) await d.notify('tab-tidy-dedupe', t('notifyClosed', closed.length));
           } else {
             // Notify only when the suggestion changed, not on every interval.
             if (await savePendingKind('dedupe', plan, at)) {
               await d.notify('tab-tidy-dedupe',
-                `重複タブが ${plan.closes.length} 件あります。ツールバーのボタンから確認できます`);
+                t('notifyDedupeSuggest', plan.closes.length));
             }
           }
         } else if (settings.dedupe.mode === 'suggest') {
@@ -178,7 +175,7 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
           } else {
             if (await savePendingKind('grouping', plan, at)) {
               await d.notify('tab-tidy-grouping',
-                `${n} 枚のタブの分類案があります。ツールバーのボタンから確認できます`);
+                t('notifyGroupingSuggest', n));
             }
           }
         } else if (settings.grouping.mode === 'suggest') {

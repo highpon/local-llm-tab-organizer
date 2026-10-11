@@ -67,7 +67,7 @@ describe('runCycle', () => {
     expect(pending?.grouping).toBeDefined();
     expect(pending?.dedupe).toBeUndefined();
     expect(deps.notify).toHaveBeenCalledTimes(2); // dedupe closed + grouping suggestion
-    expect(deps.notify).toHaveBeenCalledWith('tab-tidy-dedupe', '重複タブを 1 件閉じました');
+    expect(deps.notify).toHaveBeenCalledWith('tab-tidy-dedupe', 'Closed 1 duplicate tabs');
     expect(rec).toMatchObject({ closed: 1, grouped: 0, method: 'domain', skipped: false });
     expect(await listRuns()).toHaveLength(1);
   });
@@ -119,7 +119,7 @@ describe('runCycle', () => {
     expect(deps.snapshot).toHaveBeenCalledTimes(1);
     expect(deps.classify.mock.calls[0]![0]).toHaveLength(4);
     expect(deps.notify).toHaveBeenCalledWith(
-      'tab-tidy-dedupe', '重複タブが 1 件あります。ツールバーのボタンから確認できます');
+      'tab-tidy-dedupe', 'Found 1 duplicate tabs. Review them from the toolbar button.');
   });
 
   it('suggest of one kind keeps the other kind pending', async () => {
@@ -259,7 +259,7 @@ describe('runCycle', () => {
     }));
     const deps = makeDeps({ classify: err });
     await runCycle('manual', deps);
-    expect(deps.notify).toHaveBeenCalledWith('tab-tidy-llm', 'LLM に接続できません。ドメイン単位の分類に切り替えました');
+    expect(deps.notify).toHaveBeenCalledWith('tab-tidy-llm', 'Cannot reach the LLM. Switched to grouping by domain.');
     await runCycle('manual', makeDeps());
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBe('ok');
   });

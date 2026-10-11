@@ -1,4 +1,5 @@
 import type { Mode } from '../../core/types';
+import { formatTime, localizeDocument, t } from '../../services/i18n';
 import { LlmError, listModels } from '../../services/llmClient';
 import { listRuns } from '../../services/runHistory';
 import type { Message } from '../../services/scheduler';
@@ -6,22 +7,20 @@ import { loadSettings, saveSettings, type Settings } from '../../services/settin
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
-const MODE_LABELS: [Mode, string][] = [['auto', '自動'], ['suggest', '提案'], ['off', 'オフ']];
-const TRIGGER_LABELS = { alarm: '定期', idle: 'アイドル', manual: '手動' } as const;
-const METHOD_LABELS = { llm: 'LLM', domain: 'ドメイン', mixed: '混合' } as const;
+const modeLabels = (): [Mode, string][] => [['auto', t('modeAuto')], ['suggest', t('modeSuggest')], ['off', t('modeOff')]];
+const triggerLabels = () => ({ alarm: t('triggerAlarm'), idle: t('triggerIdle'), manual: t('triggerManual') });
+const methodLabels = () => ({ llm: t('methodLlm'), domain: t('methodDomain'), mixed: t('methodMixed') });
 
-const OLLAMA_GUIDE =
-  'Ollama が拡張機能からの接続を拒否しました。環境変数 OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください。';
-const ERROR_TEXT: Record<string, string> = {
-  unreachable: 'サーバーに接続できません。URL と Ollama の起動状態を確認してください。',
-  timeout: 'タイムアウトしました。',
-  forbidden: OLLAMA_GUIDE,
-  http: 'サーバーがエラーを返しました。',
-  badResponse: '応答を解釈できませんでした。',
-};
+const errorText = (kind: string): string | undefined => ({
+  unreachable: t('errUnreachable'),
+  timeout: t('errTimeout'),
+  forbidden: t('ollamaGuide'),
+  http: t('errHttp'),
+  badResponse: t('errBadResponse'),
+} as Record<string, string>)[kind];
 
 function fillModes(select: HTMLSelectElement): void {
-  for (const [value, label] of MODE_LABELS) {
+  for (const [value, label] of modeLabels()) {
     const o = document.createElement('option');
     o.value = value;
     o.textContent = label;
@@ -47,11 +46,11 @@ function fillForm(s: Settings): void {
   $<HTMLInputElement>('idleSeconds').value = String(s.schedule.idleSeconds);
 }
 
-function readInt(id: string, min: number, label: string): number {
+function readInt(id: string, min: number, field: string): number {
   const raw = $<HTMLInputElement>(id).value.trim();
   const n = Number(raw);
   if (raw === '' || !Number.isInteger(n) || n < min) {
-    throw new Error(`${label}は ${min} 以上の整数を入力してください。`);
+    throw new Error(t('intRequired', field, min));
   }
   return n;
 }
@@ -67,11 +66,11 @@ function readForm(): Settings {
       enabled: $<HTMLInputElement>('llmEnabled').checked,
       baseUrl: $<HTMLInputElement>('baseUrl').value.trim(),
       model: $<HTMLInputElement>('model').value.trim(),
-      timeoutSeconds: readInt('timeoutSeconds', 1, 'タイムアウト'),
+      timeoutSeconds: readInt('timeoutSeconds', 1, t('fieldTimeout')),
     },
     schedule: {
-      intervalMinutes: readInt('intervalMinutes', 1, '実行間隔'),
-      idleSeconds: readInt('idleSeconds', 15, 'アイドル判定'),
+      intervalMinutes: readInt('intervalMinutes', 1, t('fieldInterval')),
+      idleSeconds: readInt('idleSeconds', 15, t('fieldIdle')),
     },
   };
 }
@@ -93,12 +92,12 @@ async function renderHistory(): Promise<void> {
   for (const r of await listRuns()) {
     const tr = document.createElement('tr');
     const cells = [
-      new Date(r.at).toLocaleString('ja-JP'),
-      TRIGGER_LABELS[r.trigger],
+      formatTime(r.at),
+      triggerLabels()[r.trigger],
       String(r.closed),
       String(r.grouped),
-      r.method ? METHOD_LABELS[r.method] : '-',
-      r.skipped ? 'スキップ' : r.error ?? '',
+      r.method ? methodLabels()[r.method] : '-',
+      r.skipped ? t('skipped') : r.error ?? '',
     ];
     for (const c of cells) {
       const td = document.createElement('td');
@@ -113,11 +112,11 @@ async function renderHistory(): Promise<void> {
 $('test').addEventListener('click', async () => {
   const baseUrl = $<HTMLInputElement>('baseUrl').value.trim();
   const pattern = originPattern(baseUrl);
-  if (!pattern) return show('testResult', 'ベース URL が正しくありません。', true);
-  show('testResult', '接続中...', false);
+  if (!pattern) return show('testResult', t('invalidBaseUrl'), true);
+  show('testResult', t('connecting'), false);
   try {
     const granted = await browser.permissions.request({ origins: [pattern] });
-    if (!granted) return show('testResult', 'この URL への接続が許可されませんでした。', true);
+    if (!granted) return show('testResult', t('permissionDenied'), true);
     const timeoutSeconds = Math.max(1, Number($<HTMLInputElement>('timeoutSeconds').value) || 30);
     const models = await listModels({
       enabled: true, baseUrl, model: '', timeoutSeconds,
@@ -129,10 +128,10 @@ $('test').addEventListener('click', async () => {
       o.value = m;
       list.append(o);
     }
-    show('testResult', `接続しました（モデル ${models.length} 件）`, false);
+    show('testResult', t('connected', models.length), false);
   } catch (e) {
     const kind = e instanceof LlmError ? e.kind : 'unreachable';
-    show('testResult', ERROR_TEXT[kind] ?? String(e), true);
+    show('testResult', errorText(kind) ?? String(e), true);
   }
 });
 
@@ -141,27 +140,28 @@ $('form').addEventListener('submit', async (ev) => {
   const enabled = $<HTMLInputElement>('llmEnabled').checked;
   const baseUrl = $<HTMLInputElement>('baseUrl').value.trim();
   const pattern = originPattern(baseUrl);
-  if (enabled && !pattern) return show('status', 'ベース URL が正しくありません。', true);
+  if (enabled && !pattern) return show('status', t('invalidBaseUrl'), true);
   if (enabled && $<HTMLInputElement>('model').value.trim() === '') {
-    return show('status', 'LLM を使うにはモデル名を入力してください（「接続テスト」で候補を表示できます）。', true);
+    return show('status', t('modelRequired'), true);
   }
   try {
     let granted = true;
     if (enabled && pattern) granted = await browser.permissions.request({ origins: [pattern] });
     if (!granted) {
       $<HTMLInputElement>('llmEnabled').checked = false;
-      return show('status', 'LLM の接続先が許可されなかったため、LLM は有効にしていません。', true);
+      return show('status', t('llmPermissionDenied'), true);
     }
     const s = readForm();
     await saveSettings(s);
     await browser.runtime.sendMessage({ type: 'settingsChanged' } satisfies Message);
-    show('status', '保存しました', false);
+    show('status', t('saved'), false);
   } catch (e) {
     show('status', e instanceof Error ? e.message : String(e), true);
   }
 });
 
 async function init(): Promise<void> {
+  localizeDocument();
   fillModes($('dedupeMode'));
   fillModes($('groupingMode'));
   fillForm(await loadSettings());

@@ -1,8 +1,8 @@
 <!doctype html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Tab Tidy</title>
+<title data-i18n="popupTitle">Tab Tidy</title>
 <meta name="color-scheme" content="light dark">
 <style>
   :root { color-scheme: light dark; }
@@ -18,14 +18,14 @@
 </head>
 <body>
 <div>
-  <button id="run">今すぐ実行</button>
-  <button id="undo">元に戻す</button>
-  <button id="options">設定</button>
+  <button id="run" data-i18n="runNow"></button>
+  <button id="undo" data-i18n="undo"></button>
+  <button id="options" data-i18n="settings"></button>
 </div>
 <div id="message" class="muted" role="status"></div>
 <div id="pending"></div>
-<section><h2>直近の実行</h2><div id="last" class="muted"></div></section>
-<section><h2>LLM の状態</h2><div id="llm" class="muted"></div></section>
+<section><h2 data-i18n="lastRunHeading"></h2><div id="last" class="muted"></div></section>
+<section><h2 data-i18n="llmStatusHeading"></h2><div id="llm" class="muted"></div></section>
 <script type="module" src="./main.ts"></script>
 </body>
 </html>

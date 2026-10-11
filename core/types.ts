@@ -3,7 +3,7 @@ export type Mode = 'auto' | 'suggest' | 'off';
 export interface TabInfo {
   id: number; windowId: number; url: string; title: string;
   pinned: boolean; active: boolean; audible: boolean;
-  lastAccessed: number; groupId: number; // NO_GROUP = 未所属
+  lastAccessed: number; groupId: number; // NO_GROUP = not in a group
   cookieStoreId: string; // container / private window; 'firefox-default' when unknown
 }
 export interface GroupInfo { id: number; windowId: number; title: string }

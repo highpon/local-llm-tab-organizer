@@ -43,7 +43,7 @@ A temporary add-on is removed when Firefox restarts.
 - Results of each run are listed in the run history on the settings page.
 - Step-by-step checks with expected results are in [`docs/manual-test.md`](docs/manual-test.md).
 
-The extension's UI is currently in Japanese.
+The UI follows the browser language: English and Japanese are supported (`public/_locales/`), with English as the default.
 
 ### Using a local LLM (Ollama)
 
@@ -66,7 +66,7 @@ ollama pull qwen3:4b
 Then, on the extension's settings page:
 
 1. Keep the base URL at `http://localhost:11434/v1` (the default).
-2. Click the connection test button (接続テスト) and allow the permission prompt.
+2. Click "Test connection" and allow the permission prompt.
 3. Pick a model from the suggestions, enable the LLM, and save.
 
 If `OLLAMA_ORIGINS` is missing, the connection test shows a 403 error with setup instructions. Whenever the LLM cannot be reached, the extension falls back to grouping by domain.
@@ -95,5 +95,6 @@ This writes the submission zips to `.output/`.
 | `core/` | Pure logic with no browser APIs: URL normalization, dedupe and grouping planners, domain classification |
 | `services/` | Browser, LLM, and storage access: settings, LLM client, tab operations, undo, run orchestration, scheduling |
 | `entrypoints/` | Background script, popup, settings page |
+| `public/_locales/` | UI messages (`en`, `ja`) |
 | `tests/` | Unit tests for `core/` and `services/` |
 | `docs/` | Design spec, implementation plan, manual test checklist |

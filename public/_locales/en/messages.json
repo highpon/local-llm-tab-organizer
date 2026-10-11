@@ -1,0 +1,317 @@
+{
+  "extName": {
+    "message": "tab-tidy"
+  },
+  "extDescription": {
+    "message": "Merges duplicate tabs and sorts tabs into tab groups using a local LLM or by domain."
+  },
+  "popupTitle": {
+    "message": "Tab Tidy"
+  },
+  "runNow": {
+    "message": "Run now"
+  },
+  "undo": {
+    "message": "Undo"
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "lastRunHeading": {
+    "message": "Last run"
+  },
+  "llmStatusHeading": {
+    "message": "LLM status"
+  },
+  "existingGroup": {
+    "message": "Existing group"
+  },
+  "apply": {
+    "message": "Apply"
+  },
+  "discard": {
+    "message": "Discard"
+  },
+  "busy": {
+    "message": "A run is in progress. Please try again in a moment."
+  },
+  "applied": {
+    "message": "Applied"
+  },
+  "discarded": {
+    "message": "Discarded"
+  },
+  "dedupeHeading": {
+    "message": "Merge duplicates (tabs to close)"
+  },
+  "groupingHeading": {
+    "message": "Grouping suggestion"
+  },
+  "runSkipped": {
+    "message": "$TIME$: skipped because another run was in progress",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      }
+    }
+  },
+  "runSummary": {
+    "message": "$TIME$: closed $CLOSED$ / grouped $GROUPED$",
+    "placeholders": {
+      "time": {
+        "content": "$1"
+      },
+      "closed": {
+        "content": "$2"
+      },
+      "grouped": {
+        "content": "$3"
+      }
+    }
+  },
+  "runWithError": {
+    "message": "$SUMMARY$ (error: $ERROR$)",
+    "placeholders": {
+      "summary": {
+        "content": "$1"
+      },
+      "error": {
+        "content": "$2"
+      }
+    }
+  },
+  "llmOk": {
+    "message": "OK"
+  },
+  "llmUnreachable": {
+    "message": "Cannot connect"
+  },
+  "llmTimeout": {
+    "message": "Timed out"
+  },
+  "llmForbidden": {
+    "message": "Connection refused (OLLAMA_ORIGINS must be set)"
+  },
+  "llmHttp": {
+    "message": "The server returned an error"
+  },
+  "llmBadResponse": {
+    "message": "Could not understand the response"
+  },
+  "neverRun": {
+    "message": "Not run yet"
+  },
+  "llmUnused": {
+    "message": "Not in use"
+  },
+  "openSettings": {
+    "message": "Open settings"
+  },
+  "running": {
+    "message": "Running..."
+  },
+  "done": {
+    "message": "Done"
+  },
+  "undoResult": {
+    "message": "Restored $RESTORED$ / ungrouped $UNGROUPED$",
+    "placeholders": {
+      "restored": {
+        "content": "$1"
+      },
+      "ungrouped": {
+        "content": "$2"
+      }
+    }
+  },
+  "undone": {
+    "message": "Undone"
+  },
+  "optionsTitle": {
+    "message": "Tab Tidy settings"
+  },
+  "dedupeLegend": {
+    "message": "Merge duplicate tabs"
+  },
+  "modeLabel": {
+    "message": "Mode"
+  },
+  "acrossWindowsLabel": {
+    "message": "Merge across windows"
+  },
+  "groupingLegend": {
+    "message": "Grouping"
+  },
+  "llmLegend": {
+    "message": "LLM (Ollama or another OpenAI-compatible API)"
+  },
+  "llmEnabledLabel": {
+    "message": "Classify with an LLM"
+  },
+  "baseUrlLabel": {
+    "message": "Base URL"
+  },
+  "modelLabel": {
+    "message": "Model"
+  },
+  "timeoutLabel": {
+    "message": "Timeout (seconds)"
+  },
+  "testButton": {
+    "message": "Test connection"
+  },
+  "scheduleLegend": {
+    "message": "Schedule"
+  },
+  "intervalLabel": {
+    "message": "Run interval (minutes)"
+  },
+  "idleLabel": {
+    "message": "Idle threshold (seconds, 15 or more)"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "historyHeading": {
+    "message": "Run history"
+  },
+  "colTime": {
+    "message": "Time"
+  },
+  "colTrigger": {
+    "message": "Trigger"
+  },
+  "colClosed": {
+    "message": "Closed"
+  },
+  "colGrouped": {
+    "message": "Grouped"
+  },
+  "colMethod": {
+    "message": "Method"
+  },
+  "colNotes": {
+    "message": "Notes"
+  },
+  "modeAuto": {
+    "message": "Automatic"
+  },
+  "modeSuggest": {
+    "message": "Suggest"
+  },
+  "modeOff": {
+    "message": "Off"
+  },
+  "triggerAlarm": {
+    "message": "Scheduled"
+  },
+  "triggerIdle": {
+    "message": "Idle"
+  },
+  "triggerManual": {
+    "message": "Manual"
+  },
+  "methodLlm": {
+    "message": "LLM"
+  },
+  "methodDomain": {
+    "message": "Domain"
+  },
+  "methodMixed": {
+    "message": "Mixed"
+  },
+  "ollamaGuide": {
+    "message": "Ollama refused the connection from the extension. Set the environment variable OLLAMA_ORIGINS=moz-extension://* and restart Ollama."
+  },
+  "errUnreachable": {
+    "message": "Cannot connect to the server. Check the URL and that Ollama is running."
+  },
+  "errTimeout": {
+    "message": "Timed out."
+  },
+  "errHttp": {
+    "message": "The server returned an error."
+  },
+  "errBadResponse": {
+    "message": "Could not understand the response."
+  },
+  "fieldTimeout": {
+    "message": "Timeout"
+  },
+  "fieldInterval": {
+    "message": "Run interval"
+  },
+  "fieldIdle": {
+    "message": "Idle threshold"
+  },
+  "intRequired": {
+    "message": "$FIELD$ must be an integer of at least $MIN$.",
+    "placeholders": {
+      "field": {
+        "content": "$1"
+      },
+      "min": {
+        "content": "$2"
+      }
+    }
+  },
+  "invalidBaseUrl": {
+    "message": "The base URL is not valid."
+  },
+  "connecting": {
+    "message": "Connecting..."
+  },
+  "permissionDenied": {
+    "message": "Access to this URL was not allowed."
+  },
+  "connected": {
+    "message": "Connected ($COUNT$ models)",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "modelRequired": {
+    "message": "Enter a model name to use the LLM (\"Test connection\" lists candidates)."
+  },
+  "llmPermissionDenied": {
+    "message": "The LLM endpoint was not allowed, so the LLM was not enabled."
+  },
+  "saved": {
+    "message": "Saved"
+  },
+  "skipped": {
+    "message": "Skipped"
+  },
+  "notifyForbidden": {
+    "message": "Cannot reach the LLM (403). Set OLLAMA_ORIGINS=moz-extension://* and restart Ollama."
+  },
+  "notifyLlmFallback": {
+    "message": "Cannot reach the LLM. Switched to grouping by domain."
+  },
+  "notifyClosed": {
+    "message": "Closed $COUNT$ duplicate tabs",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "notifyDedupeSuggest": {
+    "message": "Found $COUNT$ duplicate tabs. Review them from the toolbar button.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  },
+  "notifyGroupingSuggest": {
+    "message": "A grouping suggestion is ready for $COUNT$ tabs. Review it from the toolbar button.",
+    "placeholders": {
+      "count": {
+        "content": "$1"
+      }
+    }
+  }
+}
