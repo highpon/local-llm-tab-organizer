@@ -41,7 +41,7 @@ function updateClassifierFields(): void {
 function renderModelStatus(status: ModelStatus): void {
   show('modelStatus', modelStatusText(status), status.state === 'error');
   $<HTMLButtonElement>('downloadModels').disabled = status.state === 'ready' || status.state === 'downloading';
-  $<HTMLButtonElement>('deleteModels').disabled = status.state !== 'ready' && status.state !== 'error';
+  $<HTMLButtonElement>('deleteModels').disabled = status.state === 'missing';
 }
 
 function fillModes(select: HTMLSelectElement): void {

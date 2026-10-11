@@ -46,7 +46,8 @@ function deps(client: MlClient, status: ModelStatus = { state: 'ready' }) {
     client: vi.fn(() => client),
     status: vi.fn(async () => status),
     ensure: vi.fn(() => {}),
-    invalidate: vi.fn(async () => {}),
+    loadFailed: vi.fn(async () => {}),
+    loadSucceeded: vi.fn(async () => {}),
     timeoutMs: 60_000,
   } satisfies OnDeviceDeps;
 }
@@ -139,16 +140,25 @@ describe('classifyOnDevice', () => {
     const r = await classifyOnDevice([tab(1, 'https://github.com/a', 'A')], [], d);
     expect(r).toEqual({ assignments: [{ tabId: 1, group: 'Github' }], method: 'domain', error: 'inferenceFailed' });
     expect(c.terminate).toHaveBeenCalled();
-    expect(d.invalidate).not.toHaveBeenCalled();
+    expect(d.loadFailed).not.toHaveBeenCalled();
   });
 
-  it('load failure on ready models invalidates the cache', async () => {
+  it('a load failure is reported to the model manager', async () => {
     const c = fakeClient({});
     c.load.mockRejectedValue(new Error('corrupt'));
     const d = deps(c);
     const r = await classifyOnDevice([tab(1, 'https://github.com/a', 'A')], [], d);
     expect(r.error).toBe('inferenceFailed');
-    expect(d.invalidate).toHaveBeenCalledTimes(1);
+    expect(d.loadFailed).toHaveBeenCalledTimes(1);
+    expect(d.loadSucceeded).not.toHaveBeenCalled();
+  });
+
+  it('loads cached models only and reports success', async () => {
+    const c = fakeClient({});
+    const d = deps(c);
+    await classifyOnDevice([tab(1, 'https://github.com/a', 'A')], [], d);
+    expect(c.load).toHaveBeenCalledWith(undefined, false);
+    expect(d.loadSucceeded).toHaveBeenCalledTimes(1);
   });
 
   it('timeout: domain fallback', async () => {

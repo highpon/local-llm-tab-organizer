@@ -1,7 +1,8 @@
 import type { MlRequest, MlResponse } from './protocol';
 
 export interface MlClient {
-  load(onProgress?: (progress: number) => void): Promise<void>;
+  /** remote: false loads cached models only and fails instead of downloading. */
+  load(onProgress?: (progress: number) => void, remote?: boolean): Promise<void>;
   /** Mean-pooled, L2-normalized embeddings, one per text. */
   embed(texts: string[]): Promise<number[][]>;
   /** One generated label per prompt. */
@@ -56,10 +57,10 @@ export function createMlClient(spawn: () => Worker = spawnWorker): MlClient {
     });
 
   return {
-    async load(cb) {
+    async load(cb, remote = true) {
       onProgress = cb;
       try {
-        await request<unknown>({ type: 'load' });
+        await request<unknown>({ type: 'load', remote });
       } finally {
         onProgress = undefined;
       }

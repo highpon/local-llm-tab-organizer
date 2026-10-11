@@ -13,11 +13,16 @@ export interface ModelDeps {
   notify: (message: string) => Promise<void>;
   now: () => number;
   deleteCache: () => Promise<void>;
+  /** Number of files in the model cache; 0 when the browser evicted or the user cleared it. */
+  cacheEntries: () => Promise<number>;
 }
 
 const RETRY_AFTER_MS = 60 * 60_000;
 /** A download still marked as running after this long was cut off (e.g. the event page was unloaded). */
 const STALE_DOWNLOAD_MS = 15 * 60_000;
+const LOAD_FAILURES_KEY = 'modelLoadFailures';
+/** Consecutive failures to load present models before they are treated as corrupt. */
+const MAX_LOAD_FAILURES = 3;
 
 function defaultDeps(): ModelDeps {
   return {
@@ -31,6 +36,8 @@ function defaultDeps(): ModelDeps {
     deleteCache: async () => {
       await caches.delete(MODEL_CACHE_NAME);
     },
+    cacheEntries: async () =>
+      (await caches.has(MODEL_CACHE_NAME)) ? (await (await caches.open(MODEL_CACHE_NAME)).keys()).length : 0,
   };
 }
 
@@ -54,12 +61,13 @@ export async function loadModelStatus(): Promise<ModelStatus> {
 /** The download running in this context, if any. */
 let current: { client: MlClient; promise: Promise<void>; cancelled: boolean } | null = null;
 
+/** Called with no download running in this context, so a 'downloading' status is left over. */
 function mayStart(status: ModelStatus, force: boolean, now: number): boolean {
   const since = now - (status.lastAttemptAt ?? 0);
   switch (status.state) {
     case 'ready': return false;
     case 'missing': return true;
-    case 'downloading': return since > STALE_DOWNLOAD_MS;
+    case 'downloading': return force || since > STALE_DOWNLOAD_MS;
     case 'error': return force || since >= RETRY_AFTER_MS;
   }
 }
@@ -88,7 +96,7 @@ export async function ensureModels(opts: { force?: boolean } = {}, deps: Partial
         if (percent === lastPercent || run.cancelled) return;
         lastPercent = percent;
         void saveStatus({ state: 'downloading', progress: p, lastAttemptAt: now });
-      }));
+      }, true));
       if (!run.cancelled) await saveStatus({ state: 'ready' });
     } catch (e) {
       if (run.cancelled) return;
@@ -116,7 +124,36 @@ export async function deleteModels(deps: Partial<ModelDeps> = {}): Promise<void>
   await saveStatus({ state: 'missing' });
 }
 
-/** Called when ready models fail to load (corrupt cache): delete them so the next run downloads again. */
+/**
+ * Downloads run only in the background page and die with it, so a 'downloading' status found when
+ * the background page starts is left over from an interrupted download.
+ */
+export async function resetInterruptedDownload(): Promise<void> {
+  if (!current && (await loadModelStatus()).state === 'downloading') await saveStatus({ state: 'missing' });
+}
+
+/**
+ * Ready models failed to load. Out of memory or a worker that would not start leave the files
+ * usable, so they are deleted (and downloaded again by the next run) only when the cache is gone
+ * or after MAX_LOAD_FAILURES failures in a row.
+ */
+export async function noteLoadFailure(deps: Partial<ModelDeps> = {}): Promise<void> {
+  const d = { ...defaultDeps(), ...deps };
+  const stored = (await browser.storage.local.get(LOAD_FAILURES_KEY))[LOAD_FAILURES_KEY];
+  const failures = (typeof stored === 'number' ? stored : 0) + 1;
+  if (failures >= MAX_LOAD_FAILURES || (await d.cacheEntries()) === 0) {
+    await browser.storage.local.remove(LOAD_FAILURES_KEY);
+    await invalidateModels(d);
+  } else {
+    await browser.storage.local.set({ [LOAD_FAILURES_KEY]: failures });
+  }
+}
+
+export async function noteLoadSuccess(): Promise<void> {
+  await browser.storage.local.remove(LOAD_FAILURES_KEY);
+}
+
+/** Deletes the downloaded models and marks them missing so the next run downloads again. */
 export async function invalidateModels(deps: Partial<ModelDeps> = {}): Promise<void> {
   const d = { ...defaultDeps(), ...deps };
   await d.deleteCache();

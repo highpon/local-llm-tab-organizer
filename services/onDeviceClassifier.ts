@@ -8,14 +8,15 @@ import {
 import type { Assignment, ExistingGroup, TabInfo } from '../core/types';
 import type { ClassifyResult } from './llmClassifier';
 import { createMlClient, type MlClient } from './ml/client';
-import { ensureModels, invalidateModels, loadModelStatus, type ModelStatus } from './modelManager';
+import { ensureModels, loadModelStatus, noteLoadFailure, noteLoadSuccess, type ModelStatus } from './modelManager';
 
 export interface OnDeviceDeps {
   client: () => MlClient;
   status: () => Promise<ModelStatus>;
   /** Fire-and-forget model download. */
   ensure: () => void;
-  invalidate: () => Promise<void>;
+  loadFailed: () => Promise<void>;
+  loadSucceeded: () => Promise<void>;
   timeoutMs: number;
 }
 
@@ -27,7 +28,8 @@ function defaultDeps(): OnDeviceDeps {
     client: () => createMlClient(),
     status: loadModelStatus,
     ensure: () => { void ensureModels(); },
-    invalidate: () => invalidateModels(),
+    loadFailed: () => noteLoadFailure(),
+    loadSucceeded: noteLoadSuccess,
     timeoutMs: 60_000,
   };
 }
@@ -49,12 +51,16 @@ function domainName(tabs: TabInfo[]): string | null {
   return best ? (byDomain([best.tab])[0]?.group ?? null) : null;
 }
 
-async function classifyWithModels(client: MlClient, tabs: TabInfo[], existing: ExistingGroup[]): Promise<Assignment[]> {
+async function classifyWithModels(
+  client: MlClient, tabs: TabInfo[], existing: ExistingGroup[], loadSucceeded: () => Promise<void>,
+): Promise<Assignment[]> {
   try {
-    await client.load();
+    // Cached models only: downloading belongs to the model manager, outside the run lock.
+    await client.load(undefined, false);
   } catch (e) {
     throw new LoadError(e instanceof Error ? e.message : String(e));
   }
+  await loadSucceeded().catch(() => {});
   const groups = existing.filter((g) => g.title.trim() !== '');
   const anchorTexts = groups.map((g) => [g.title, ...g.tabs.slice(0, ANCHORS_PER_GROUP).map(embedText)]);
   const vectors = await client.embed([...tabs.map(embedText), ...anchorTexts.flat()]);
@@ -115,7 +121,8 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
  * singleton clusters are classified by domain. A cluster is named by the topic model when its
  * titles are mostly Latin, else by its top keywords, else by its most common domain. Tabs over
  * the cap are classified by domain (method 'mixed'). Any failure or a 60 s timeout classifies
- * everything by domain (inferenceFailed); a failure to load ready models also invalidates them.
+ * everything by domain (inferenceFailed); a failure to load ready models is reported to the model
+ * manager, which deletes them if the cache is gone or the failures repeat.
  */
 export async function classifyOnDevice(
   tabs: TabInfo[], existing: ExistingGroup[], deps: Partial<OnDeviceDeps> = {},
@@ -131,13 +138,13 @@ export async function classifyOnDevice(
   const tail = tabs.slice(MAX_ON_DEVICE_TABS);
   const client = d.client();
   try {
-    const assignments = await withTimeout(classifyWithModels(client, head, existing), d.timeoutMs);
+    const assignments = await withTimeout(classifyWithModels(client, head, existing, d.loadSucceeded), d.timeoutMs);
     return {
       assignments: [...assignments, ...byDomain(tail)],
       method: tail.length > 0 ? 'mixed' : 'onDevice',
     };
   } catch (e) {
-    if (e instanceof LoadError) await d.invalidate().catch(() => {});
+    if (e instanceof LoadError) await d.loadFailed().catch(() => {});
     return { assignments: byDomain(tabs), method: 'domain', error: 'inferenceFailed' };
   } finally {
     client.terminate();

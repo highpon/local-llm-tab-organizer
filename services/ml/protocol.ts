@@ -1,5 +1,5 @@
 export type MlRequest =
-  | { id: number; type: 'load' }
+  | { id: number; type: 'load'; remote: boolean } // remote: false = cached models only
   | { id: number; type: 'embed'; texts: string[] }
   | { id: number; type: 'topic'; prompts: string[] };
 

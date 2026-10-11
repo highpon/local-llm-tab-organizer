@@ -2,13 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { MlClient } from '../../services/ml/client';
 import {
-  deleteModels, ensureModels, invalidateModels, loadModelStatus, MODEL_STATUS_KEY, modelStatusText, type ModelStatus,
+  deleteModels, ensureModels, invalidateModels, loadModelStatus, MODEL_STATUS_KEY, modelStatusText, noteLoadFailure,
+  noteLoadSuccess, resetInterruptedDownload, type ModelStatus,
 } from '../../services/modelManager';
 
 const NOW = 1_000_000_000_000;
 const MIN = 60_000;
 
-type Load = (onProgress?: (p: number) => void) => Promise<void>;
+type Load = (onProgress?: (p: number) => void, remote?: boolean) => Promise<void>;
 
 function fakeClient(load: Load) {
   return {
@@ -37,6 +38,7 @@ function makeDeps(load: Load) {
     notify: vi.fn(async () => {}),
     now: vi.fn<() => number>(() => NOW),
     deleteCache: vi.fn(async () => {}),
+    cacheEntries: vi.fn<() => Promise<number>>(async () => 12),
   };
   return { deps, clients };
 }
@@ -138,6 +140,61 @@ describe('modelManager', () => {
     await run;
     expect(await loadModelStatus()).toEqual({ state: 'missing' });
     expect(deps.notify).not.toHaveBeenCalled();
+  });
+
+  it('force restarts a downloading status when no download runs here', async () => {
+    await setStatus({ state: 'downloading', progress: 0.3, lastAttemptAt: NOW - MIN });
+    const { deps } = makeDeps(async () => {});
+    await ensureModels({ force: true }, deps);
+    expect(deps.client).toHaveBeenCalledTimes(1);
+    expect(await loadModelStatus()).toMatchObject({ state: 'ready' });
+  });
+
+  it('resetInterruptedDownload marks a leftover download missing', async () => {
+    await setStatus({ state: 'downloading', progress: 0.3, lastAttemptAt: NOW - MIN });
+    await resetInterruptedDownload();
+    expect(await loadModelStatus()).toEqual({ state: 'missing' });
+    await setStatus({ state: 'ready' });
+    await resetInterruptedDownload();
+    expect(await loadModelStatus()).toEqual({ state: 'ready' });
+  });
+
+  it('a load failure with the cache intact keeps the models', async () => {
+    await setStatus({ state: 'ready' });
+    const { deps } = makeDeps(async () => {});
+    await noteLoadFailure(deps);
+    await noteLoadFailure(deps);
+    expect(deps.deleteCache).not.toHaveBeenCalled();
+    expect(await loadModelStatus()).toEqual({ state: 'ready' });
+  });
+
+  it('a load failure with the cache gone invalidates at once', async () => {
+    await setStatus({ state: 'ready' });
+    const { deps } = makeDeps(async () => {});
+    deps.cacheEntries.mockResolvedValue(0);
+    await noteLoadFailure(deps);
+    expect(deps.deleteCache).toHaveBeenCalledTimes(1);
+    expect(await loadModelStatus()).toEqual({ state: 'missing' });
+  });
+
+  it('three load failures in a row invalidate; a success resets the count', async () => {
+    await setStatus({ state: 'ready' });
+    const { deps } = makeDeps(async () => {});
+    await noteLoadFailure(deps);
+    await noteLoadFailure(deps);
+    await noteLoadSuccess();
+    await noteLoadFailure(deps);
+    await noteLoadFailure(deps);
+    expect(deps.deleteCache).not.toHaveBeenCalled();
+    await noteLoadFailure(deps);
+    expect(deps.deleteCache).toHaveBeenCalledTimes(1);
+    expect(await loadModelStatus()).toEqual({ state: 'missing' });
+  });
+
+  it('downloads with remote models allowed', async () => {
+    const { deps, clients } = makeDeps(async () => {});
+    await ensureModels({}, deps);
+    expect(clients[0]!.load.mock.calls[0]![1]).toBe(true);
   });
 
   it('invalidateModels deletes the cache and sets missing', async () => {

@@ -1,5 +1,5 @@
 import { runCycle, applyPending } from '../services/orchestrator';
-import { deleteModels, ensureModels } from '../services/modelManager';
+import { deleteModels, ensureModels, resetInterruptedDownload } from '../services/modelManager';
 import { discardPending } from '../services/pending';
 import { ALARM_NAME, ensureAlarm, handleAlarm, handleIdleChange, type Message } from '../services/scheduler';
 import { loadSettings } from '../services/settings';
@@ -41,6 +41,7 @@ export default defineBackground(() => {
   loadSettings()
     .then((s) => browser.idle.setDetectionInterval(s.schedule.idleSeconds))
     .catch(console.error);
+  resetInterruptedDownload().catch(console.error);
 
   // All listeners are registered synchronously: the MV3 event page is restarted per event.
   browser.runtime.onInstalled.addListener(() => {

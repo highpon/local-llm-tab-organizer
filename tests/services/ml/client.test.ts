@@ -23,12 +23,18 @@ describe('createMlClient', () => {
     const seen: number[] = [];
     const p = client.load((x) => seen.push(x));
     const id = w.sent[0]!.id;
-    expect(w.sent[0]!.type).toBe('load');
+    expect(w.sent[0]).toMatchObject({ type: 'load', remote: true });
     w.reply({ type: 'progress', progress: 0.5 });
     w.reply({ type: 'progress', progress: 1 });
     w.reply({ id, ok: true, result: null });
     await expect(p).resolves.toBeUndefined();
     expect(seen).toEqual([0.5, 1]);
+  });
+
+  it('load can be limited to cached models', async () => {
+    const { w, client } = setup();
+    void client.load(undefined, false);
+    expect(w.sent[0]).toMatchObject({ type: 'load', remote: false });
   });
 
   it('embed resolves with the result of the matching id', async () => {
