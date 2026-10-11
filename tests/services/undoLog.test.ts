@@ -20,8 +20,8 @@ describe('undoLog', () => {
     await saveUndo({
       at: 1,
       closed: [
-        { tabId: 1, windowId: 10, url: 'https://a.example/' },
-        { tabId: 2, windowId: 10, url: 'https://b.example/' },
+        { tabId: 1, windowId: 10, url: 'https://a.example/' , cookieStoreId: 'firefox-default' },
+        { tabId: 2, windowId: 10, url: 'https://b.example/' , cookieStoreId: 'firefox-default' },
       ],
       grouped: [],
     });
@@ -39,8 +39,8 @@ describe('undoLog', () => {
     await saveUndo({
       at: 1,
       closed: [
-        { tabId: 1, windowId: 10, url: 'https://a.example/' },
-        { tabId: 2, windowId: 20, url: 'https://b.example/' },
+        { tabId: 1, windowId: 10, url: 'https://a.example/' , cookieStoreId: 'firefox-default' },
+        { tabId: 2, windowId: 20, url: 'https://b.example/' , cookieStoreId: 'firefox-default' },
       ],
       grouped: [],
     });
@@ -48,15 +48,15 @@ describe('undoLog', () => {
     expect(await undoLast(ports)).toEqual({ restored: 2, ungrouped: 0 });
     expect(ports.restore).toHaveBeenCalledWith('s1');
     expect(ports.create).toHaveBeenCalledTimes(1);
-    expect(ports.create).toHaveBeenCalledWith('https://b.example/', 20);
+    expect(ports.create).toHaveBeenCalledWith('https://b.example/', 20, 'firefox-default');
   });
 
   it('uses distinct sessions for tabs closed with the same URL', async () => {
     await saveUndo({
       at: 1,
       closed: [
-        { tabId: 1, windowId: 10, url: 'https://a.example/' },
-        { tabId: 2, windowId: 10, url: 'https://a.example/' },
+        { tabId: 1, windowId: 10, url: 'https://a.example/' , cookieStoreId: 'firefox-default' },
+        { tabId: 2, windowId: 10, url: 'https://a.example/' , cookieStoreId: 'firefox-default' },
       ],
       grouped: [],
     });
@@ -74,15 +74,26 @@ describe('undoLog', () => {
     await saveUndo({
       at: 1,
       closed: [
-        { tabId: 1, windowId: 10, url: 'https://a.example/' },
-        { tabId: 2, windowId: 11, url: 'https://a.example/' },
+        { tabId: 1, windowId: 10, url: 'https://a.example/' , cookieStoreId: 'firefox-default' },
+        { tabId: 2, windowId: 11, url: 'https://a.example/' , cookieStoreId: 'firefox-default' },
       ],
       grouped: [],
     });
     const ports = makePorts([{ sessionId: 's1', url: 'https://a.example/' }]);
     await undoLast(ports);
     expect(ports.restore).toHaveBeenCalledTimes(1);
-    expect(ports.create).toHaveBeenCalledWith('https://a.example/', 11);
+    expect(ports.create).toHaveBeenCalledWith('https://a.example/', 11, 'firefox-default');
+  });
+
+  it('recreates a missing tab in its original container', async () => {
+    await saveUndo({
+      at: 1,
+      closed: [{ tabId: 1, windowId: 10, url: 'https://a.example/', cookieStoreId: 'firefox-container-2' }],
+      grouped: [],
+    });
+    const ports = makePorts([]);
+    await undoLast(ports);
+    expect(ports.create).toHaveBeenCalledWith('https://a.example/', 10, 'firefox-container-2');
   });
 
   it('ungroups grouped tabs once', async () => {

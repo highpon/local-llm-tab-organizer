@@ -9,7 +9,7 @@ beforeEach(() => { fakeBrowser.reset(); });
 const cfg = { enabled: true, baseUrl: 'http://x/v1', model: 'm', timeoutSeconds: 5 };
 const tab = (id: number, url = `https://site${id}.example.com/p`): TabInfo => ({
   id, windowId: 7, url, title: `Title ${id}`, pinned: false, active: false,
-  audible: false, lastAccessed: 1234567890123, groupId: -1,
+  audible: false, lastAccessed: 1234567890123, groupId: -1, cookieStoreId: 'firefox-default',
 });
 const reply = (...a: [number, string][]) =>
   JSON.stringify({ assignments: a.map(([tabId, group]) => ({ tabId, group })) });

@@ -4,13 +4,15 @@ import { revalidateClose } from '../core/planDedupe';
 import { revalidateGroupAdd } from '../core/planGrouping';
 
 export interface AppliedDedupe {
-  closed: { tabId: number; windowId: number; url: string }[];
+  closed: { tabId: number; windowId: number; url: string; cookieStoreId: string }[];
   skipped: number;
 }
 export interface AppliedGrouping {
   grouped: number[];
   skipped: number;
 }
+
+const DEFAULT_COOKIE_STORE = 'firefox-default';
 
 async function getTab(tabId: number): Promise<TabInfo | undefined> {
   try {
@@ -32,6 +34,8 @@ function toTabInfo(t: Browser.tabs.Tab): TabInfo | undefined {
     audible: t.audible ?? false,
     lastAccessed: t.lastAccessed ?? 0,
     groupId: t.groupId ?? NO_GROUP,
+    // Firefox-only field, missing from the shared Tab type.
+    cookieStoreId: (t as { cookieStoreId?: string }).cookieStoreId ?? DEFAULT_COOKIE_STORE,
   };
 }
 
@@ -56,12 +60,15 @@ export async function applyDedupe(plan: DedupePlan): Promise<AppliedDedupe> {
   for (const entry of plan.closes) {
     try {
       const current = await getTab(entry.tabId);
-      if (!revalidateClose(entry, current)) {
+      const keep = await getTab(entry.keepTabId);
+      if (!revalidateClose(entry, current, keep)) {
         result.skipped++;
         continue;
       }
       await browser.tabs.remove(entry.tabId);
-      result.closed.push({ tabId: entry.tabId, windowId: entry.windowId, url: entry.url });
+      result.closed.push({
+        tabId: entry.tabId, windowId: entry.windowId, url: entry.url, cookieStoreId: entry.cookieStoreId,
+      });
     } catch {
       result.skipped++;
     }

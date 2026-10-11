@@ -4,7 +4,7 @@ import type { TabInfo } from '../../core/types';
 
 const tab = (id: number, url: string): TabInfo => ({
   id, windowId: 1, url, title: '', pinned: false, active: false,
-  audible: false, lastAccessed: 0, groupId: -1,
+  audible: false, lastAccessed: 0, groupId: -1, cookieStoreId: 'firefox-default',
 });
 
 describe('domainKey', () => {

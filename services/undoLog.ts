@@ -9,7 +9,7 @@ export interface UndoRecord {
 export interface UndoPorts {
   getRecentlyClosed(): Promise<{ sessionId: string; url: string }[]>;
   restore(sessionId: string): Promise<void>;
-  create(url: string, windowId: number): Promise<void>;
+  create(url: string, windowId: number, cookieStoreId?: string): Promise<void>;
   ungroup(tabIds: number[]): Promise<void>;
 }
 
@@ -38,8 +38,9 @@ function defaultPorts(): UndoPorts {
     async restore(sessionId) {
       await browser.sessions.restore(sessionId);
     },
-    async create(url, windowId) {
-      await browser.tabs.create({ url, windowId });
+    async create(url, windowId, cookieStoreId) {
+      // cookieStoreId (Firefox containers) is missing from the shared createProperties type.
+      await browser.tabs.create({ url, windowId, ...(cookieStoreId ? { cookieStoreId } : {}) } as Browser.tabs.CreateProperties);
     },
     async ungroup(tabIds) {
       await browser.tabs.ungroup(tabIds as [number, ...number[]]);
@@ -71,7 +72,7 @@ export async function undoLast(
           used.add(match.sessionId);
           await ports.restore(match.sessionId);
         } else {
-          await ports.create(c.url, c.windowId);
+          await ports.create(c.url, c.windowId, c.cookieStoreId);
         }
         restored++;
       } catch {

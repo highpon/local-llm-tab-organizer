@@ -13,7 +13,7 @@ const NOW = 1_000_000_000;
 
 const tab = (id: number, url: string, over: Partial<TabInfo> = {}): TabInfo => ({
   id, windowId: 1, url, title: `t${id}`, pinned: false, active: false, audible: false,
-  lastAccessed: id, groupId: NO_GROUP, ...over,
+  lastAccessed: id, groupId: NO_GROUP, cookieStoreId: 'firefox-default', ...over,
 });
 
 const snap = (over: Partial<Snapshot> = {}): Snapshot => ({
@@ -32,7 +32,9 @@ function makeDeps(over: Partial<RunDeps> = {}): Mocked {
   const deps = {
     snapshot: vi.fn(async () => snap()),
     applyDedupe: vi.fn(async (p: DedupePlan) => ({
-      closed: p.closes.map((c: CloseEntry) => ({ tabId: c.tabId, windowId: c.windowId, url: c.url })), skipped: 0,
+      closed: p.closes.map((c: CloseEntry) => ({
+        tabId: c.tabId, windowId: c.windowId, url: c.url, cookieStoreId: c.cookieStoreId,
+      })), skipped: 0,
     })),
     applyGrouping: vi.fn(async (p: GroupingPlan) => ({
       grouped: [...p.addToExisting, ...p.createNew].flatMap((g) => g.tabs.map((t: GroupAdd) => t.tabId)), skipped: 0,

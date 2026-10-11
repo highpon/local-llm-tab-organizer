@@ -4,7 +4,7 @@ import type { TabInfo, GroupInfo } from '../../core/types';
 
 const tab = (id: number, over: Partial<TabInfo> = {}): TabInfo => ({
   id, windowId: 1, url: `https://example.com/${id}`, title: '', pinned: false,
-  active: false, audible: false, lastAccessed: 0, groupId: -1, ...over,
+  active: false, audible: false, lastAccessed: 0, groupId: -1, cookieStoreId: 'firefox-default', ...over,
 });
 const add = (id: number, windowId = 1) => ({ tabId: id, windowId, url: `https://example.com/${id}` });
 
