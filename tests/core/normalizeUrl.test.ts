@@ -10,6 +10,10 @@ describe('normalizeUrl', () => {
     same('https://example.com/?fbclid=1&gclid=2&mc_cid=3&mc_eid=4&ref_src=5', 'https://example.com');
     same('https://EXAMPLE.com/a?b=2&a=1', 'https://example.com/a?a=1&b=2');
   });
+  it('drops tracking keys regardless of case', () => {
+    same('https://example.com/a?UTM_Source=x&FBCLID=1&GClid=2&Mc_Cid=3&MC_EID=4&Ref_Src=5', 'https://example.com/a');
+    same('https://example.com/a?Utm_medium=x&id=7', 'https://example.com/a?id=7');
+  });
   it('keeps meaningful query', () => {
     diff('https://www.youtube.com/watch?v=aaa', 'https://www.youtube.com/watch?v=bbb');
     diff('https://www.google.com/search?q=rust', 'https://www.google.com/search?q=go');

@@ -137,6 +137,8 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
       record.skipped = true;
     } else {
       const settings = await loadSettings();
+      // A status from when the LLM was on would be stale and misleading in the popup.
+      if (!settings.llm.enabled) await browser.storage.local.remove(LLM_STATUS_KEY);
       let snap = await d.snapshot();
 
       if (settings.dedupe.mode !== 'off') {

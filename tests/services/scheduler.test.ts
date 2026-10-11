@@ -44,6 +44,14 @@ describe('handleAlarm', () => {
     expect(await runPending()).toBeUndefined();
   });
 
+  it('clears a stale runPending flag before running when idle', async () => {
+    await browser.storage.session.set({ runPending: true });
+    let seen: unknown = 'unset';
+    await handleAlarm(async () => 'idle', async () => { seen = await runPending(); });
+    expect(seen).toBeUndefined();
+    expect(await runPending()).toBeUndefined();
+  });
+
   it('defers by setting runPending when active', async () => {
     const run = vi.fn(async () => {});
     await handleAlarm(async () => 'active', run);

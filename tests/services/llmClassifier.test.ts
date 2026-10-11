@@ -33,6 +33,11 @@ describe('parseAssignments', () => {
     ] });
     expect(parseAssignments(c, ids)).toEqual([{ tabId: 1, group: 'A' }]);
   });
+  it('truncates group names to 40 characters', () => {
+    const long = 'あ'.repeat(30) + 'b'.repeat(30);
+    const [a] = parseAssignments(reply([1, `  ${long}  `]), ids);
+    expect(a!.group).toBe(long.slice(0, 40));
+  });
   it('returns [] when unreadable', () => {
     expect(parseAssignments('nothing here', ids)).toEqual([]);
     expect(parseAssignments('{bad json}', ids)).toEqual([]);

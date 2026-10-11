@@ -288,6 +288,12 @@ describe('runCycle', () => {
     await runCycle('manual', makeDeps());
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBeUndefined();
   });
+
+  it('removes a stale llmStatus once the LLM is disabled', async () => {
+    await browser.storage.local.set({ llmStatus: 'timeout' });
+    await runCycle('manual', makeDeps());
+    expect((await browser.storage.local.get('llmStatus')).llmStatus).toBeUndefined();
+  });
 });
 
 describe('pending', () => {

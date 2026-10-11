@@ -12,7 +12,10 @@ export function normalizeUrl(url: string): string | null {
   const host = u.host.toLowerCase().replace(/^www\./, '');
   const path = u.pathname.replace(/\/+$/, '');
   const params = [...u.searchParams.entries()]
-    .filter(([k]) => !k.startsWith('utm_') && !TRACKING_KEYS.has(k))
+    .filter(([k]) => {
+      const key = k.toLowerCase();
+      return !key.startsWith('utm_') && !TRACKING_KEYS.has(key);
+    })
     .sort(([a, av], [b, bv]) => (a < b ? -1 : a > b ? 1 : av < bv ? -1 : av > bv ? 1 : 0));
   const query = params.length
     ? '?' + params.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')

@@ -28,6 +28,8 @@ export async function handleAlarm(
   const { schedule } = await loadSettings();
   const state = await queryIdle(schedule.idleSeconds);
   if (state === 'idle' || state === 'locked') {
+    // This run covers any run deferred earlier; drop the mark so idle does not run again.
+    await browser.storage.session.remove(PENDING_KEY);
     await run('alarm');
   } else {
     await browser.storage.session.set({ [PENDING_KEY]: true });
