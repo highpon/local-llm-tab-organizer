@@ -102,7 +102,7 @@ describe('classifyTabs', () => {
   it('sends only id/title/url plus existing group names', async () => {
     const chat = vi.fn(async (_m: { role: string; content: string }[]) => reply([1, 'A']));
     await classifyTabs([tab(1)], ['Work', 'Reading'], cfg, chat);
-    const [system, user] = chat.mock.calls[0]![0] as [{ content: string }, { content: string }];
+    const [system, user] = chat.mock.calls[0]![0] as unknown as [{ content: string }, { content: string }];
     const all = system.content + user.content;
     expect(all).toContain('Work');
     expect(all).toContain('Reading');
