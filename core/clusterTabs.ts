@@ -1,9 +1,9 @@
 export const MAX_ON_DEVICE_TABS = 300;
 export const ANCHORS_PER_GROUP = 3;
 /** Minimum cosine similarity to an existing group's anchor for a tab to join it. */
-export const JOIN_THRESHOLD = 0.6; // placeholder; set from the fixture in tests/fixtures/embeddings.json
+export const JOIN_THRESHOLD = 0.5; // chosen from tests/fixtures/embeddings.json (see tests/core/thresholds.test.ts)
 /** Maximum average cosine distance between two clusters for them to merge. */
-export const CLUSTER_THRESHOLD = 0.5; // placeholder; set from the fixture in tests/fixtures/embeddings.json
+export const CLUSTER_THRESHOLD = 0.4; // chosen from tests/fixtures/embeddings.json (see tests/core/thresholds.test.ts)
 
 export function cosine(a: number[], b: number[]): number {
   let dot = 0;
