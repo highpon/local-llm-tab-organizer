@@ -17,18 +17,27 @@ export function planGrouping(
   assignments: Assignment[],
 ): GroupingPlan {
   const candidates = new Map(groupingCandidates(tabs).map((t) => [t.id, t]));
-  const sorted = [...assignments].sort((a, b) => a.tabId - b.tabId);
-
-  const existing = new Map<number, GroupAdd[]>();
-  const fresh = new Map<string, { windowId: number; title: string; tabs: GroupAdd[] }>();
+  // First assignment per tab wins, in input order; that order also decides the title spelling.
+  const chosen: { tab: TabInfo; group: string }[] = [];
+  const titles = new Map<string, string>();
   const seen = new Set<number>();
-
-  for (const { tabId, group } of sorted) {
+  for (const { tabId, group } of assignments) {
     const tab = candidates.get(tabId);
     const key = nameKey(group);
     if (!tab || !key || seen.has(tabId)) continue;
     seen.add(tabId);
-    const entry: GroupAdd = { tabId, windowId: tab.windowId, url: tab.url };
+    chosen.push({ tab, group });
+    const bucketKey = `${tab.windowId}\u0000${key}`;
+    if (!titles.has(bucketKey)) titles.set(bucketKey, group.trim());
+  }
+  chosen.sort((a, b) => a.tab.id - b.tab.id);
+
+  const existing = new Map<number, GroupAdd[]>();
+  const fresh = new Map<string, { windowId: number; title: string; tabs: GroupAdd[] }>();
+
+  for (const { tab, group } of chosen) {
+    const key = nameKey(group);
+    const entry: GroupAdd = { tabId: tab.id, windowId: tab.windowId, url: tab.url };
 
     const target = groups.find((g) => g.windowId === tab.windowId && nameKey(g.title) === key);
     if (target) {
@@ -38,7 +47,7 @@ export function planGrouping(
       continue;
     }
     const bucketKey = `${tab.windowId}\u0000${key}`;
-    const bucket = fresh.get(bucketKey) ?? { windowId: tab.windowId, title: group.trim(), tabs: [] };
+    const bucket = fresh.get(bucketKey) ?? { windowId: tab.windowId, title: titles.get(bucketKey)!, tabs: [] };
     bucket.tabs.push(entry);
     fresh.set(bucketKey, bucket);
   }
@@ -54,6 +63,8 @@ export function revalidateGroupAdd(entry: GroupAdd, current: TabInfo | undefined
     current !== undefined &&
     current.groupId === NO_GROUP &&
     current.windowId === entry.windowId &&
-    !current.pinned
+    !current.pinned &&
+    normalizeUrl(current.url) !== null &&
+    normalizeUrl(current.url) === normalizeUrl(entry.url)
   );
 }

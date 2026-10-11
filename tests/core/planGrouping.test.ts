@@ -36,17 +36,32 @@ describe('planGrouping', () => {
     expect(plan.createNew).toEqual([{ windowId: 1, title: 'Dev', tabs: [add(1), add(2)] }]);
   });
 
-  it('creates a new group for 2+ tabs in one window using first-seen spelling', () => {
+  it('creates a new group for 2+ tabs in one window using the first spelling in input order', () => {
     const plan = planGrouping([tab(1), tab(2)], [], [
-      { tabId: 1, group: 'News' }, { tabId: 2, group: ' news' },
+      { tabId: 2, group: ' news' }, { tabId: 1, group: 'News' },
     ]);
-    expect(plan.createNew).toEqual([{ windowId: 1, title: 'News', tabs: [add(1), add(2)] }]);
+    expect(plan.createNew).toEqual([{ windowId: 1, title: 'news', tabs: [add(1), add(2)] }]);
   });
 
   it('leaves a lone new-name tab alone, and counts per window', () => {
     const tabs = [tab(1), tab(2, { windowId: 2 })];
     const plan = planGrouping(tabs, [], [
       { tabId: 1, group: 'X' }, { tabId: 2, group: 'X' },
+    ]);
+    expect(plan).toEqual({ addToExisting: [], createNew: [] });
+  });
+
+  it('uses the first assignment when a tab is assigned twice', () => {
+    const groups: GroupInfo[] = [{ id: 10, windowId: 1, title: 'A' }, { id: 11, windowId: 1, title: 'B' }];
+    const plan = planGrouping([tab(1)], groups, [
+      { tabId: 1, group: 'A' }, { tabId: 1, group: 'B' },
+    ]);
+    expect(plan.addToExisting).toEqual([{ groupId: 10, tabs: [add(1)] }]);
+  });
+
+  it('ignores empty group names', () => {
+    const plan = planGrouping([tab(1), tab(2)], [], [
+      { tabId: 1, group: '  ' }, { tabId: 2, group: '' },
     ]);
     expect(plan).toEqual({ addToExisting: [], createNew: [] });
   });
@@ -83,5 +98,12 @@ describe('revalidateGroupAdd', () => {
     expect(revalidateGroupAdd(entry, tab(1, { groupId: 4 }))).toBe(false);
     expect(revalidateGroupAdd(entry, tab(1, { windowId: 2 }))).toBe(false);
     expect(revalidateGroupAdd(entry, tab(1, { pinned: true }))).toBe(false);
+  });
+  it('rejects a tab whose URL changed or is no longer http(s)', () => {
+    expect(revalidateGroupAdd(entry, tab(1, { url: 'https://other.test/' }))).toBe(false);
+    expect(revalidateGroupAdd(entry, tab(1, { url: 'about:blank' }))).toBe(false);
+  });
+  it('accepts a URL differing only by tracking param or fragment', () => {
+    expect(revalidateGroupAdd(entry, tab(1, { url: 'https://example.com/1?utm_source=x#top' }))).toBe(true);
   });
 });
