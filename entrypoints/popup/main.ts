@@ -1,5 +1,5 @@
 import type { DedupePlan, GroupingPlan } from '../../core/types';
-import { loadPending } from '../../services/orchestrator';
+import { loadPending } from '../../services/pending';
 import { listRuns, type RunRecord } from '../../services/runHistory';
 import type { Message } from '../../services/scheduler';
 import { loadUndo } from '../../services/undoLog';

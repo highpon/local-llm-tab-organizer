@@ -2,13 +2,12 @@ import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
 import type { DedupePlan, GroupingPlan, LlmErrorKind, Snapshot, TabInfo } from '../core/types';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
+import { discardPending, loadPending, savePendingKind } from './pending';
 import { appendRun, type RunRecord, type Trigger } from './runHistory';
 import { loadSettings, type Settings } from './settings';
 import * as adapter from './tabsAdapter';
 import type { AppliedDedupe, AppliedGrouping } from './tabsAdapter';
 import { saveUndo } from './undoLog';
-
-export interface Pending { dedupe?: DedupePlan; grouping?: GroupingPlan; createdAt: number }
 
 export interface RunDeps {
   snapshot: () => Promise<Snapshot>;
@@ -21,7 +20,6 @@ export interface RunDeps {
 
 const LOCK_KEY = 'runLock';
 const LOCK_TTL_MS = 5 * 60_000;
-const PENDING_KEY = 'pending';
 const LLM_STATUS_KEY = 'llmStatus';
 
 const MSG_FORBIDDEN =
@@ -40,26 +38,6 @@ function defaultDeps(): RunDeps {
     },
     now: Date.now,
   };
-}
-
-export async function loadPending(): Promise<Pending | null> {
-  const stored = await browser.storage.local.get(PENDING_KEY);
-  return (stored[PENDING_KEY] as Pending | undefined) ?? null;
-}
-
-async function savePendingKind(
-  kind: 'dedupe' | 'grouping', plan: DedupePlan | GroupingPlan, now: number,
-): Promise<void> {
-  const current = (await loadPending()) ?? { createdAt: now };
-  await browser.storage.local.set({ [PENDING_KEY]: { ...current, [kind]: plan, createdAt: now } });
-}
-
-export async function discardPending(kind: 'dedupe' | 'grouping'): Promise<void> {
-  const current = await loadPending();
-  if (!current) return;
-  delete current[kind];
-  if (current.dedupe || current.grouping) await browser.storage.local.set({ [PENDING_KEY]: current });
-  else await browser.storage.local.remove(PENDING_KEY);
 }
 
 export async function applyPending(

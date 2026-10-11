@@ -1,4 +1,5 @@
-import { runCycle, applyPending, discardPending } from '../services/orchestrator';
+import { runCycle, applyPending } from '../services/orchestrator';
+import { discardPending } from '../services/pending';
 import { ALARM_NAME, ensureAlarm, handleAlarm, handleIdleChange, type Message } from '../services/scheduler';
 import { loadSettings } from '../services/settings';
 import { clearUndo, undoLast } from '../services/undoLog';

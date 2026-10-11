@@ -2,9 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { NO_GROUP } from '../../core/types';
 import type { CloseEntry, DedupePlan, GroupAdd, GroupingPlan, Snapshot, TabInfo } from '../../core/types';
-import {
-  applyPending, discardPending, loadPending, runCycle, type RunDeps,
-} from '../../services/orchestrator';
+import { applyPending, runCycle, type RunDeps } from '../../services/orchestrator';
+import { discardPending, loadPending } from '../../services/pending';
 import { listRuns } from '../../services/runHistory';
 import { saveSettings, DEFAULT_SETTINGS, type Settings } from '../../services/settings';
 import { loadUndo } from '../../services/undoLog';
