@@ -109,9 +109,11 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
             snap = await d.snapshot();
             if (closed.length > 0) await d.notify('tab-tidy-dedupe', `重複タブを ${closed.length} 件閉じました`);
           } else {
-            await savePendingKind('dedupe', plan, at);
-            await d.notify('tab-tidy-dedupe',
-              `重複タブが ${plan.closes.length} 件あります。ツールバーのボタンから確認できます`);
+            // Notify only when the suggestion changed, not on every interval.
+            if (await savePendingKind('dedupe', plan, at)) {
+              await d.notify('tab-tidy-dedupe',
+                `重複タブが ${plan.closes.length} 件あります。ツールバーのボタンから確認できます`);
+            }
           }
         } else if (settings.dedupe.mode === 'suggest') {
           await discardPending('dedupe');
@@ -134,9 +136,10 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
           if (settings.grouping.mode === 'auto') {
             grouped.push(...(await d.applyGrouping(plan)).grouped);
           } else {
-            await savePendingKind('grouping', plan, at);
-            await d.notify('tab-tidy-grouping',
-              `${n} 枚のタブの分類案があります。ツールバーのボタンから確認できます`);
+            if (await savePendingKind('grouping', plan, at)) {
+              await d.notify('tab-tidy-grouping',
+                `${n} 枚のタブの分類案があります。ツールバーのボタンから確認できます`);
+            }
           }
         } else if (settings.grouping.mode === 'suggest') {
           await discardPending('grouping');

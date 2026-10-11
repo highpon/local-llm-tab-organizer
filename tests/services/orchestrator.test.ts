@@ -212,6 +212,30 @@ describe('runCycle', () => {
     expect(await loadPending()).toBeNull();
   });
 
+  it('suggest mode does not re-notify an unchanged plan', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    const deps = makeDeps();
+    await runCycle('alarm', deps);
+    await runCycle('alarm', deps);
+    const byId = (id: string) => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === id);
+    expect(byId('tab-tidy-dedupe')).toHaveLength(1);
+    expect(byId('tab-tidy-grouping')).toHaveLength(1);
+    expect((await loadPending())?.dedupe?.closes).toHaveLength(1);
+  });
+
+  it('suggest mode notifies again when the plan changes', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    const deps = makeDeps();
+    await runCycle('alarm', deps);
+    deps.snapshot.mockImplementation(async () => snap({
+      tabs: [...snap().tabs, tab(5, 'https://c.com/q'), tab(6, 'https://c.com/q')],
+    }));
+    await runCycle('alarm', deps);
+    const byId = (id: string) => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === id);
+    expect(byId('tab-tidy-dedupe')).toHaveLength(2);
+    expect(byId('tab-tidy-grouping')).toHaveLength(2);
+  });
+
   it('notifies about a 403 only on the transition into the error state', async () => {
     await setSettings({ llm: { ...DEFAULT_SETTINGS.llm, enabled: true } });
     await browser.storage.local.set({ llmStatus: 'ok' });
