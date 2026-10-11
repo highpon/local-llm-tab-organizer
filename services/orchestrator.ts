@@ -33,8 +33,9 @@ function defaultDeps(): RunDeps {
     applyGrouping: adapter.applyGrouping,
     classify: classifyTabs,
     notify: async (id, message) => {
-      // No icon asset ships with the extension yet, so iconUrl is omitted.
-      await browser.notifications.create(id, { type: 'basic', title: 'tab-tidy', message } as never);
+      await browser.notifications.create(id, {
+        type: 'basic', title: 'tab-tidy', message, iconUrl: browser.runtime.getURL('/icon.svg'),
+      });
     },
     now: Date.now,
   };
