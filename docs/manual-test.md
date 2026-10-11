@@ -138,24 +138,19 @@ Firefox 実機での確認項目。すべての「結果」は人間が実施し
 
 実行コマンド: `npm run build:firefox && npx web-ext lint -s .output/firefox-mv3`
 
-日付: 2026-10-11（最終レビュー修正後に再実行）
+日付: 2026-10-11（最低対応バージョンを 140 に引き上げた後に再実行）
 
-サマリ: errors 0 / warnings 2 / notices 0
+サマリ: errors 0 / warnings 1 / notices 0
 
-以前の `MISSING_DATA_COLLECTION_PERMISSIONS` 警告は、manifest に `browser_specific_settings.gecko.data_collection_permissions: { required: ["none"] }` を追加して解消した。ビルド時の WXT の同趣旨の警告も出なくなった。
+以前の `MISSING_DATA_COLLECTION_PERMISSIONS` 警告は、manifest に `browser_specific_settings.gecko.data_collection_permissions: { required: ["none"] }` を追加して解消した。最低対応バージョンを 140 に上げたことで、デスクトップ版の `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` 警告も解消した。
 
 残る警告（verbatim）:
 
-- code: `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`
-- message: Manifest key not supported by the specified minimum Firefox version
-- description: "strict_min_version" requires Firefox 139, which was released before version 140 introduced support for "browser_specific_settings.gecko.data_collection_permissions".
-- file: manifest.json
-
 - code: `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`
 - message: Manifest key not supported by the specified minimum Firefox for Android version
-- description: "strict_min_version" requires Firefox for Android 139, which was released before version 142 introduced support for "browser_specific_settings.gecko.data_collection_permissions".
+- description: "strict_min_version" requires Firefox for Android 140, which was released before version 142 introduced support for "browser_specific_settings.gecko.data_collection_permissions".
 - file: manifest.json
 
 エラー: なし
 
-備考: 2 件とも、最低対応バージョン 139 がこのキーの導入（140 / Android 142）より古いことへの注意。Firefox 139 は未知のキーとして無視するだけで動作に影響しない。最低対応バージョン 139 は設計上の制約なので変更していない。
+備考: Firefox for Android で `data_collection_permissions` が使えるのは 142 から。Android 対応をどうするか（対象外にする / Android の最低バージョンを 142 にする）は AMO 申請時に決める。

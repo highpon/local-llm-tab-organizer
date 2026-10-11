@@ -11,7 +11,7 @@ export default defineConfig({
     browser_specific_settings: {
       gecko: {
         id: 'tab-tidy@sshiraki',
-        strict_min_version: '139.0',
+        strict_min_version: '140.0',
         // Only tab titles/URLs go to the LLM server the user configured; nothing is sent to us.
         data_collection_permissions: { required: ['none'] },
       },
