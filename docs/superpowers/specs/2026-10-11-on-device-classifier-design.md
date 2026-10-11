@@ -93,7 +93,7 @@ public/ort/             onnxruntime-web WASM files, served from the extension
 - A download starts when (a) an on-device run finds the models not ready, or (b) the user clicks "Download now" on the settings page. Only one download runs at a time
 - During the download the event page is kept alive the same way as `whileKeepingAlive`
 - On failure the state becomes `error`. Automatic retries happen on later runs, at most once per hour (`lastAttemptAt`). "Download now" ignores the back-off
-- If loading cached models fails (corrupt cache), delete the cache and set the state to `missing` so the next run downloads again
+- If loading cached models fails, delete the cache and set the state to `missing` when the cache is gone (evicted or cleared) or after 3 failed loads in a row (corrupt cache); a single failure (e.g. out of memory) keeps the models. Runs load cached models only and never download
 - "Delete downloaded models" on the settings page deletes the cache and sets the state to `missing`
 
 ### Runtime
@@ -145,7 +145,7 @@ The rule stays the same as for the LLM: **any on-device failure falls back to do
 | Worker fails to start or inference throws (WASM load failure, out of memory) | Domain classification for this run; keep the models; record the error (`inferenceFailed`) |
 | Inference exceeds 60 seconds | Terminate the Worker; domain classification (`inferenceFailed`) |
 | Topic model returns `None`, `Adult Content` or empty | Keyword name, then domain name |
-| Cached models fail to load | Delete the cache, state → `missing`, download again next run |
+| Cached models fail to load | If the cache is gone, or after 3 failures in a row: delete it, state → `missing`, download again next run. Otherwise keep the models |
 
 ## 8. Testing
 
