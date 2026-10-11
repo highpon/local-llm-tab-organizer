@@ -2,6 +2,7 @@ import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
 import type { ClassifyErrorKind, DedupePlan, GroupingPlan, Snapshot, TabInfo } from '../core/types';
 import { t } from './i18n';
+import { whileKeepingAlive } from './keepAlive';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
 import { discardPending, loadPending, planSignature, savePendingKind, type PendingKind } from './pending';
 import { appendRun, type RunRecord, type Trigger } from './runHistory';
@@ -52,23 +53,6 @@ async function updateLlmStatus(error: ClassifyErrorKind | undefined, d: RunDeps)
   await browser.storage.local.set({ [LLM_STATUS_KEY]: next });
   if (next !== 'ok' && (prev === undefined || prev === 'ok')) {
     await d.notify('tab-tidy-llm', next === 'forbidden' ? t('notifyForbidden') : t('notifyLlmFallback'));
-  }
-}
-
-const KEEP_ALIVE_MS = 20_000;
-
-/**
- * A slow LLM can outlast the idle timeout of the MV3 event page; an extension API call
- * every 20 s resets that timer so the run can finish and be recorded.
- */
-async function whileKeepingAlive<T>(fn: () => Promise<T>): Promise<T> {
-  const timer = setInterval(() => {
-    browser.runtime.getPlatformInfo().catch(() => {});
-  }, KEEP_ALIVE_MS);
-  try {
-    return await fn();
-  } finally {
-    clearInterval(timer);
   }
 }
 

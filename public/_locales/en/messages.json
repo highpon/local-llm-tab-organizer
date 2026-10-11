@@ -290,6 +290,9 @@
   "notifyForbidden": {
     "message": "Cannot reach the LLM (403). Set OLLAMA_ORIGINS=moz-extension://* and restart Ollama."
   },
+  "notifyModelFailed": {
+    "message": "Could not download the on-device AI models. Tabs are grouped by domain until it succeeds."
+  },
   "notifyLlmFallback": {
     "message": "Cannot reach the LLM. Switched to grouping by domain."
   },
