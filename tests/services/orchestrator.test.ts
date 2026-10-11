@@ -184,6 +184,31 @@ describe('runCycle', () => {
     expect(rec.error).toBe('boom');
     expect((await browser.storage.session.get('runLock')).runLock).toBeUndefined();
     expect((await listRuns())[0]!.error).toBe('boom');
+    // dedupe already closed a tab before classify failed: it must still be undoable and counted
+    expect(rec.closed).toBe(1);
+    expect((await loadUndo())?.closed).toHaveLength(1);
+  });
+
+  it('lets only one of two simultaneous runs execute', async () => {
+    const deps = makeDeps();
+    const recs = await Promise.all([runCycle('alarm', deps), runCycle('manual', deps)]);
+    expect(recs.filter((r) => r.skipped)).toHaveLength(1);
+    expect(deps.applyDedupe).toHaveBeenCalledTimes(1);
+    expect((await browser.storage.session.get('runLock')).runLock).toBeUndefined();
+    const again = await runCycle('manual', makeDeps());
+    expect(again.skipped).toBe(false);
+  });
+
+  it('removes stale pending entries when the new plan is empty (suggest mode)', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
+    await runCycle('manual', makeDeps());
+    expect((await loadPending())?.dedupe).toBeDefined();
+    const clean = makeDeps({
+      snapshot: vi.fn(async () => snap({ tabs: [tab(1, 'https://a.com/'), tab(2, 'https://b.com/', { groupId: 50 })] })),
+      classify: vi.fn(async () => ({ assignments: [], method: 'domain' as const })),
+    });
+    await runCycle('manual', clean);
+    expect(await loadPending()).toBeNull();
   });
 
   it('notifies about a 403 only on the transition into the error state', async () => {
@@ -242,11 +267,15 @@ describe('pending', () => {
     expect((await loadUndo())?.closed).toHaveLength(1);
   });
 
-  it('discardPending only removes', async () => {
+  it('discardPending removes only the given kind', async () => {
+    await setSettings({ dedupe: { mode: 'suggest', acrossWindows: false } });
     await runCycle('manual', makeDeps());
-    const deps = makeDeps();
+    expect((await loadPending())?.dedupe && (await loadPending())?.grouping).toBeTruthy();
     await discardPending('grouping');
+    const pending = await loadPending();
+    expect(pending?.dedupe).toBeDefined();
+    expect(pending?.grouping).toBeUndefined();
+    await discardPending('dedupe');
     expect(await loadPending()).toBeNull();
-    expect(deps.applyGrouping).not.toHaveBeenCalled();
   });
 });

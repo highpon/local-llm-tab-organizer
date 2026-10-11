@@ -98,48 +98,61 @@ async function updateLlmStatus(error: LlmErrorKind | undefined, d: RunDeps): Pro
 const countTabs = (p: GroupingPlan): number =>
   [...p.addToExisting, ...p.createNew].reduce((n, g) => n + g.tabs.length, 0);
 
+let inFlight = false; // same-context guard; the storage lock covers restarts and expiry
+
 export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): Promise<RunRecord> {
   const d = { ...defaultDeps(), ...deps };
   const at = d.now();
   const record: RunRecord = { at, trigger, closed: 0, grouped: 0, method: null, skipped: false };
 
-  if (!(await acquireLock(at))) {
+  if (inFlight) {
     record.skipped = true;
     await appendRun(record);
     return record;
   }
+  inFlight = true;
+  let ownsLock = false;
+  const closed: AppliedDedupe['closed'] = [];
+  const grouped: number[] = [];
 
   try {
-    const settings = await loadSettings();
-    let snap = await d.snapshot();
-    const closed: AppliedDedupe['closed'] = [];
-    const grouped: number[] = [];
+    ownsLock = await acquireLock(at);
+    if (!ownsLock) {
+      record.skipped = true;
+    } else {
+      const settings = await loadSettings();
+      let snap = await d.snapshot();
 
-    if (settings.dedupe.mode !== 'off') {
-      const plan = planDedupe(snap.tabs, { acrossWindows: settings.dedupe.acrossWindows });
-      if (plan.closes.length > 0) {
-        if (settings.dedupe.mode === 'auto') {
-          closed.push(...(await d.applyDedupe(plan)).closed);
-          snap = await d.snapshot();
-          if (closed.length > 0) await d.notify('tab-tidy-dedupe', `重複タブを ${closed.length} 件閉じました`);
-        } else {
-          await savePendingKind('dedupe', plan, at);
-          await d.notify('tab-tidy-dedupe',
-            `重複タブが ${plan.closes.length} 件あります。ツールバーのボタンから確認できます`);
+      if (settings.dedupe.mode !== 'off') {
+        const plan = planDedupe(snap.tabs, { acrossWindows: settings.dedupe.acrossWindows });
+        if (plan.closes.length > 0) {
+          if (settings.dedupe.mode === 'auto') {
+            closed.push(...(await d.applyDedupe(plan)).closed);
+            snap = await d.snapshot();
+            if (closed.length > 0) await d.notify('tab-tidy-dedupe', `重複タブを ${closed.length} 件閉じました`);
+          } else {
+            await savePendingKind('dedupe', plan, at);
+            await d.notify('tab-tidy-dedupe',
+              `重複タブが ${plan.closes.length} 件あります。ツールバーのボタンから確認できます`);
+          }
+        } else if (settings.dedupe.mode === 'suggest') {
+          await discardPending('dedupe');
         }
       }
-    }
 
-    if (settings.grouping.mode !== 'off' && snap.groupsSupported) {
-      const candidates = groupingCandidates(snap.tabs);
-      if (candidates.length > 0) {
-        const names = [...new Set(snap.groups.map((g) => g.title).filter((t) => t !== ''))];
-        const result = await d.classify(candidates, names, settings.llm);
-        record.method = result.method;
-        if (settings.llm.enabled) await updateLlmStatus(result.error, d);
-        const plan = planGrouping(snap.tabs, snap.groups, result.assignments);
-        const n = countTabs(plan);
-        if (n > 0) {
+      if (settings.grouping.mode !== 'off' && snap.groupsSupported) {
+        const candidates = groupingCandidates(snap.tabs);
+        let n = 0;
+        let plan: GroupingPlan | undefined;
+        if (candidates.length > 0) {
+          const names = [...new Set(snap.groups.map((g) => g.title).filter((t) => t !== ''))];
+          const result = await d.classify(candidates, names, settings.llm);
+          record.method = result.method;
+          if (settings.llm.enabled) await updateLlmStatus(result.error, d);
+          plan = planGrouping(snap.tabs, snap.groups, result.assignments);
+          n = countTabs(plan);
+        }
+        if (plan && n > 0) {
           if (settings.grouping.mode === 'auto') {
             grouped.push(...(await d.applyGrouping(plan)).grouped);
           } else {
@@ -147,17 +160,28 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
             await d.notify('tab-tidy-grouping',
               `${n} 枚のタブの分類案があります。ツールバーのボタンから確認できます`);
           }
+        } else if (settings.grouping.mode === 'suggest') {
+          await discardPending('grouping');
         }
       }
     }
-
-    record.closed = closed.length;
-    record.grouped = grouped.length;
-    if (closed.length > 0 || grouped.length > 0) await saveUndo({ at, closed, grouped });
   } catch (e) {
     record.error = e instanceof Error ? e.message : String(e);
   } finally {
-    await browser.storage.session.remove(LOCK_KEY);
+    // Record whatever was really applied, even when a later step failed.
+    record.closed = closed.length;
+    record.grouped = grouped.length;
+    try {
+      if (closed.length > 0 || grouped.length > 0) await saveUndo({ at, closed, grouped });
+    } catch (e) {
+      record.error ??= e instanceof Error ? e.message : String(e);
+    }
+    try {
+      if (ownsLock) await browser.storage.session.remove(LOCK_KEY);
+    } catch (e) {
+      record.error ??= e instanceof Error ? e.message : String(e);
+    }
+    inFlight = false;
   }
   await appendRun(record);
   return record;
