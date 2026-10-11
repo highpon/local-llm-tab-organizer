@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { MlClient } from '../../services/ml/client';
 import {
-  deleteModels, ensureModels, invalidateModels, loadModelStatus, MODEL_STATUS_KEY, type ModelStatus,
+  deleteModels, ensureModels, invalidateModels, loadModelStatus, MODEL_STATUS_KEY, modelStatusText, type ModelStatus,
 } from '../../services/modelManager';
 
 const NOW = 1_000_000_000_000;
@@ -146,5 +146,13 @@ describe('modelManager', () => {
     await invalidateModels(deps);
     expect(deps.deleteCache).toHaveBeenCalledTimes(1);
     expect(await loadModelStatus()).toEqual({ state: 'missing' });
+  });
+
+  it('describes each state', () => {
+    expect(modelStatusText({ state: 'missing' })).toBe('Model: not downloaded yet (downloads on the next run)');
+    expect(modelStatusText({ state: 'downloading', progress: 0.426 })).toBe('Model: downloading… 43%');
+    expect(modelStatusText({ state: 'downloading' })).toBe('Model: downloading… 0%');
+    expect(modelStatusText({ state: 'ready' })).toBe('Model: ready');
+    expect(modelStatusText({ state: 'error', error: 'offline' })).toBe('Model: download failed (offline)');
   });
 });

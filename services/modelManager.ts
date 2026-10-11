@@ -34,6 +34,16 @@ function defaultDeps(): ModelDeps {
   };
 }
 
+/** One-line, localized description of the model status for the popup and the settings page. */
+export function modelStatusText(s: ModelStatus): string {
+  switch (s.state) {
+    case 'missing': return t('modelMissing');
+    case 'downloading': return t('modelDownloading', Math.round((s.progress ?? 0) * 100));
+    case 'ready': return t('modelReady');
+    case 'error': return t('modelError', s.error ?? '');
+  }
+}
+
 const saveStatus = (s: ModelStatus) => browser.storage.local.set({ [MODEL_STATUS_KEY]: s });
 
 export async function loadModelStatus(): Promise<ModelStatus> {

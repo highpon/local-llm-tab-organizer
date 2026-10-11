@@ -20,9 +20,6 @@
   "lastRunHeading": {
     "message": "Last run"
   },
-  "llmStatusHeading": {
-    "message": "LLM status"
-  },
   "existingGroup": {
     "message": "Existing group"
   },
@@ -141,12 +138,6 @@
   },
   "groupingLegend": {
     "message": "Grouping"
-  },
-  "llmLegend": {
-    "message": "LLM (Ollama or another OpenAI-compatible API)"
-  },
-  "llmEnabledLabel": {
-    "message": "Classify with an LLM"
   },
   "baseUrlLabel": {
     "message": "Base URL"
@@ -319,5 +310,63 @@
         "content": "$1"
       }
     }
+  },
+  "classifierLegend": {
+    "message": "Classification method"
+  },
+  "classifierOnDevice": {
+    "message": "On-device AI (default)"
+  },
+  "classifierLlm": {
+    "message": "Local LLM server (Ollama, LM Studio, …)"
+  },
+  "classifierDomain": {
+    "message": "By domain"
+  },
+  "onDeviceNote": {
+    "message": "Downloads about 175 MB from huggingface.co once. Tab data is never sent."
+  },
+  "modelMissing": {
+    "message": "Model: not downloaded yet (downloads on the next run)"
+  },
+  "modelDownloading": {
+    "message": "Model: downloading… $PERCENT$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1"
+      }
+    }
+  },
+  "modelReady": {
+    "message": "Model: ready"
+  },
+  "modelError": {
+    "message": "Model: download failed ($REASON$)",
+    "placeholders": {
+      "reason": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadModels": {
+    "message": "Download now"
+  },
+  "deleteModels": {
+    "message": "Delete downloaded models"
+  },
+  "classifyStatusHeading": {
+    "message": "Classification"
+  },
+  "classifyByDomainStatus": {
+    "message": "Grouping by domain"
+  },
+  "noteModelNotReady": {
+    "message": "Model not ready; grouped by domain"
+  },
+  "noteModelDownloadFailed": {
+    "message": "Model download failed; grouped by domain"
+  },
+  "noteInferenceFailed": {
+    "message": "On-device AI failed; grouped by domain"
   }
 }
