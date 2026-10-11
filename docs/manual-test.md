@@ -96,7 +96,7 @@ Firefox 実機での確認項目。すべての「結果」は人間が実施し
 
 ### E1. 接続テストでモデル候補が出る
 - 手順: 準備の手順で Ollama を起動し、設定画面で「接続テスト」を押す。
-- 期待結果: 接続成功の表示が出て、モデル欄の候補（datalist）に取得済みモデルが出る。
+- 期待結果: 「接続しました（モデル N 件）」（N は取得済みモデル数）と表示され、モデル欄の候補（datalist）に取得済みモデルが出る。
 - 結果: 未実施
 
 ### E2. Ollama 実機との接続と分類
@@ -105,8 +105,9 @@ Firefox 実機での確認項目。すべての「結果」は人間が実施し
 - 結果: 未実施
 
 ### E3. Ollama 未起動時にドメイン分類へ切り替わり、通知が 1 回だけ出る
+- 前提: 先に E2 を実施し、ポップアップの「LLM の状態」が「正常」になっていること（通知は「正常」からエラーに変わったときだけ出るため）。
 - 手順: Ollama を停止し、LLM を有効にしたまま実行する。続けて 2 回目も実行する。
-- 期待結果: ドメインベースの分類にフォールバックして動作する。LLM が使えない旨の通知が 1 回だけ出て、2 回目以降は繰り返し出ない。
+- 期待結果: ドメインベースの分類にフォールバックして動作する。「LLM に接続できません。ドメイン単位の分類に切り替えました」という通知が 1 回だけ出て、2 回目以降は繰り返し出ない。
 - 結果: 未実施
 
 ### E4. OLLAMA_ORIGINS 未設定時の 403 表示
@@ -114,11 +115,16 @@ Firefox 実機での確認項目。すべての「結果」は人間が実施し
 - 期待結果: 403 であることと OLLAMA_ORIGINS の設定が必要なことが分かるエラーが表示される。
 - 結果: 未実施
 
+### E5. 遅いモデルで大量のタブを分類しても実行が最後まで記録される
+- 手順: 応答の遅いモデル（例: 大きめのモデル、または CPU 実行）を設定し、タイムアウト（秒）を 120 などの大きい値にする。分類対象のタブを 50 枚以上開き、「今すぐ実行」を押して、分類が終わるまで（1 分以上かかる状態で）待つ。
+- 期待結果: 実行中に拡張のバックグラウンドが止まらず、分類が終わると設定画面の「実行履歴」にこの実行が記録される（方式が LLM または混合）。
+- 結果: 未実施
+
 ## F. 元に戻す（大量）
 
 ### F1. 26 枚以上の重複を閉じてから元に戻す（Review Focus 5）
 - 手順: 同じ URL のタブを 27 枚以上開き、重複統合を実行して 26 枚以上閉じる。直後に「元に戻す」を押す。
-- 期待結果: 閉じたタブが全部戻る。復元できなかった分は新規タブとして開き直されるが、閉じたタブの数と同数が戻る（上限で打ち切られない）。
+- 期待結果: 閉じたタブが全部戻る。Firefox の「最近閉じたタブ」から探すのは直近 25 件まで（sessions API の上限）なので、それを超えた分は新規タブとして開き直される。それでも閉じたタブの数と同数が戻る（上限で打ち切られない）。
 - 結果: 未実施
 
 ## G. 実行履歴
@@ -132,17 +138,24 @@ Firefox 実機での確認項目。すべての「結果」は人間が実施し
 
 実行コマンド: `npm run build:firefox && npx web-ext lint -s .output/firefox-mv3`
 
-日付: 2026-10-11
+日付: 2026-10-11（最終レビュー修正後に再実行）
 
-サマリ: errors 0 / warnings 1 / notices 0
+サマリ: errors 0 / warnings 2 / notices 0
 
-警告（verbatim）:
+以前の `MISSING_DATA_COLLECTION_PERMISSIONS` 警告は、manifest に `browser_specific_settings.gecko.data_collection_permissions: { required: ["none"] }` を追加して解消した。ビルド時の WXT の同趣旨の警告も出なくなった。
 
-- code: `MISSING_DATA_COLLECTION_PERMISSIONS`
-- message: The "data_collection_permissions" property is missing.
-- description: The "/browser_specific_settings/gecko/data_collection_permissions" property is required for all new Firefox extensions, and will be required for new versions of existing extensions in the future. Please add this key to the manifest. More information at: https://mzl.la/firefox-builtin-data-consent
+残る警告（verbatim）:
+
+- code: `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION`
+- message: Manifest key not supported by the specified minimum Firefox version
+- description: "strict_min_version" requires Firefox 139, which was released before version 140 introduced support for "browser_specific_settings.gecko.data_collection_permissions".
+- file: manifest.json
+
+- code: `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`
+- message: Manifest key not supported by the specified minimum Firefox for Android version
+- description: "strict_min_version" requires Firefox for Android 139, which was released before version 142 introduced support for "browser_specific_settings.gecko.data_collection_permissions".
 - file: manifest.json
 
 エラー: なし
 
-備考: ビルド時にも WXT から同趣旨の警告（`Firefox requires data_collection_permissions for new extensions from November 3, 2025. ...` / `suppressWarnings.firefoxDataCollection` で抑止可能）が出ている。ソースは未修正。
+備考: 2 件とも、最低対応バージョン 139 がこのキーの導入（140 / Android 142）より古いことへの注意。Firefox 139 は未知のキーとして無視するだけで動作に影響しない。最低対応バージョン 139 は設計上の制約なので変更していない。
