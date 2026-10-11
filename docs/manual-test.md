@@ -1,156 +1,158 @@
-# 手動結合確認チェックリスト
+# Manual Integration Test Checklist
 
-Firefox 実機での確認項目。すべての「結果」は人間が実施して記入する（現時点では全項目「未実施」）。
+Checks to run in a real Firefox. A person fills in every "Result" (all items are currently "Not run").
 
-## 準備
+The extension's UI is in Japanese; UI labels are quoted in Japanese with an English gloss.
 
-1. 依存関係を入れる: `npm install`
-2. 開発モードの Firefox を起動する: `npx wxt -b firefox`（拡張が一時アドオンとして読み込まれる）
-3. 設定画面は拡張のポップアップの「設定」ボタンから開く。スケジュール確認用に、実行間隔（分）を 1、アイドル判定（秒）を 15 などの小さい値にして保存すると待ち時間が短くなる。
-4. LLM を使う項目（L 系）の追加準備:
-   - Ollama をインストールする。
-   - 拡張からのアクセスを許可して起動する: `OLLAMA_ORIGINS=moz-extension://* ollama serve`
-   - 小さいモデルを取得する（例: `ollama pull qwen2.5:1.5b`）。
-   - 設定画面で「LLM を使って分類する」をオン、ベース URL を `http://localhost:11434/v1`（Ollama の既定）、モデルを取得したモデル名にする。
-5. 各項目の前に、ポップアップ・設定画面で該当モードを設定し、テスト用タブを開き直すこと。
+## Setup
 
-## A. 重複タブの統合と元に戻す
+1. Install dependencies: `npm install`
+2. Start Firefox in development mode: `npx wxt -b firefox` (the extension is loaded as a temporary add-on)
+3. Open the settings page from the "設定" (Settings) button in the popup. To shorten waits for the schedule checks, set the run interval (minutes) to 1 and the idle threshold (seconds) to 15, then save.
+4. Extra setup for the LLM items (section E):
+   - Install Ollama.
+   - Start it with extension access allowed: `OLLAMA_ORIGINS=moz-extension://* ollama serve`
+   - Pull a small model (e.g. `ollama pull qwen2.5:1.5b`).
+   - On the settings page, turn on "LLM を使って分類する" (classify with an LLM), set the base URL to `http://localhost:11434/v1` (Ollama's default), and set the model to the one you pulled.
+5. Before each item, set the relevant modes in the popup and settings page, and reopen the test tabs.
 
-### A1. 同一ウィンドウの重複を統合する
-- 手順: 設定で重複統合モードを「提案」または「自動」、「ウィンドウをまたいで統合する」をオフにする。同じウィンドウで同じ URL（例: `https://example.com/`）のタブを 3 枚開き、ポップアップの「今すぐ実行」を押す（提案モードなら提案を適用する）。
-- 期待結果: 1 枚だけ残り、残り 2 枚が閉じる。ポップアップに閉じた枚数が表示される。
-- 結果: 未実施
+## A. Merging duplicates and undo
 
-### A2. 元に戻す
-- 手順: A1 の直後にポップアップの「元に戻す」を押す。
-- 期待結果: 閉じたタブが元の URL で復元される。
-- 結果: 未実施
+### A1. Merge duplicates in one window
+- Steps: In settings, set the duplicate merging mode to "提案" (suggest) or "自動" (auto) and turn off "ウィンドウをまたいで統合する" (merge across windows). Open 3 tabs with the same URL (e.g. `https://example.com/`) in one window and press "今すぐ実行" (Run now) in the popup (in suggest mode, apply the suggestion).
+- Expected: Only 1 tab remains and the other 2 are closed. The popup shows how many tabs were closed.
+- Result: Not run
 
-### A3. ピン留めタブは閉じない
-- 手順: 同じ URL のタブを 2 枚開き、片方をピン留めして実行する。
-- 期待結果: ピン留めタブが残り、もう片方だけが閉じる（ピン留めタブは閉じられない）。
-- 結果: 未実施
+### A2. Undo
+- Steps: Right after A1, press "元に戻す" (Undo) in the popup.
+- Expected: The closed tabs are restored with their original URLs.
+- Result: Not run
 
-### A4. 表示中（アクティブ）のタブは閉じない
-- 手順: 同じ URL のタブを 2 枚開き、重複側の 1 枚をアクティブにした状態で実行する。
-- 期待結果: アクティブなタブは閉じられない。
-- 結果: 未実施
+### A3. Pinned tabs are never closed
+- Steps: Open 2 tabs with the same URL, pin one of them, and run.
+- Expected: The pinned tab remains and only the other one is closed (pinned tabs are never closed).
+- Result: Not run
 
-### A5. 音声再生中のタブは閉じない
-- 手順: 同じ URL の動画/音声ページを 2 枚開き、片方で再生して実行する。
-- 期待結果: 音声再生中のタブは閉じられない。
-- 結果: 未実施
+### A4. The active tab is never closed
+- Steps: Open 2 tabs with the same URL, make the duplicate the active tab, and run.
+- Expected: The active tab is not closed.
+- Result: Not run
 
-### A6. acrossWindows 設定
-- 手順: ウィンドウを 2 つ用意し、同じ URL のタブをそれぞれに開く。「ウィンドウをまたいで統合する」をオフで実行し、次にオンで実行する。
-- 期待結果: オフでは各ウィンドウのタブは閉じない。オンではウィンドウをまたいで重複が 1 枚に統合される。
-- 結果: 未実施
+### A5. Tabs playing audio are never closed
+- Steps: Open 2 tabs of the same video/audio page, play one of them, and run.
+- Expected: The tab playing audio is not closed.
+- Result: Not run
 
-## B. 分類（グループ分け）
+### A6. Merge-across-windows setting
+- Steps: Open two windows, each with a tab of the same URL. Run with "ウィンドウをまたいで統合する" (merge across windows) off, then with it on.
+- Expected: With it off, neither tab is closed. With it on, the duplicates across windows are merged into one.
+- Result: Not run
 
-### B1. 提案を適用する
-- 手順: グループ分けモードを「提案」にする。異なるドメインのタブを複数（同ドメイン 2 枚以上のカテゴリを含む）開き、「今すぐ実行」を押す。ポップアップに出る提案を適用する。
-- 期待結果: 提案内容どおりにタブグループが作られる（ブラウザ側のタブグループ API 対応状況に従う）。
-- 結果: 未実施
+## B. Grouping
 
-### B2. 提案を破棄する
-- 手順: B1 の提案が出ている状態で破棄する。
-- 期待結果: タブは何も変更されず、提案表示が消える。
-- 結果: 未実施
+### B1. Apply a suggestion
+- Steps: Set the grouping mode to "提案" (suggest). Open several tabs from different domains (including at least one category with 2+ tabs of the same domain) and press "今すぐ実行" (Run now). Apply the suggestion shown in the popup.
+- Expected: Tab groups are created as suggested (subject to the browser's tab group API support).
+- Result: Not run
 
-### B3. 既存グループへの追加
-- 手順: 既存のグループ（例: 名前が提案カテゴリと一致するもの）がある状態で、該当カテゴリのタブを追加で開いて実行・適用する。
-- 期待結果: 新しいグループは作られず、既存グループにタブが追加される。
-- 結果: 未実施
+### B2. Discard a suggestion
+- Steps: With the B1 suggestion showing, discard it.
+- Expected: No tabs change and the suggestion disappears.
+- Result: Not run
 
-### B4. 1 枚だけの新カテゴリはグループ化しない
-- 手順: 他に同カテゴリのタブがない、ドメインが 1 枚だけのタブを開いて実行する。
-- 期待結果: そのタブのためだけの新グループは作られない。
-- 結果: 未実施
+### B3. Add to an existing group
+- Steps: With an existing group (e.g. one whose name matches a suggested category), open another tab of that category, run, and apply.
+- Expected: No new group is created; the tab is added to the existing group.
+- Result: Not run
 
-### B5. グループ済みタブは動かない
-- 手順: 手動でグループ化したタブがある状態で実行・適用する。
-- 期待結果: すでにグループに入っているタブは別グループへ移動されない。
-- 結果: 未実施
+### B4. A new category with a single tab is not grouped
+- Steps: Open a tab whose domain no other tab shares, and run.
+- Expected: No new group is created just for that tab.
+- Result: Not run
 
-### B6. 提案を作った後でタブを閉じてから適用する（Review Focus 1）
-- 手順: 提案を作る（適用はしない）。提案に含まれるタブのうち 1 枚以上を手動で閉じてから、提案を適用する。
-- 期待結果: エラーなく適用され、閉じたタブは飛ばされる。残りのタブは提案どおり処理される。
-- 結果: 未実施
+### B5. Grouped tabs do not move
+- Steps: With tabs you grouped manually, run and apply.
+- Expected: Tabs already in a group are not moved to another group.
+- Result: Not run
 
-## C. 自動モード
+### B6. Close a tab after a suggestion is made, then apply (Review Focus 1)
+- Steps: Create a suggestion (do not apply it). Manually close one or more tabs included in the suggestion, then apply it.
+- Expected: The suggestion applies without errors and the closed tabs are skipped. The remaining tabs are handled as suggested.
+- Result: Not run
 
-### C1. 自動へ切り替える
-- 手順: 重複統合モード・グループ分けモードを「自動」にして保存する。重複タブと分類対象のタブを開き、「今すぐ実行」を押す。
-- 期待結果: 提案が出ずに自動で閉じ・グループ化され、実行履歴に記録される。
-- 結果: 未実施
+## C. Auto mode
 
-## D. 定期実行
+### C1. Switch to auto
+- Steps: Set both the duplicate merging mode and the grouping mode to "自動" (auto) and save. Open duplicate tabs and tabs to classify, then press "今すぐ実行" (Run now).
+- Expected: Tabs are closed and grouped automatically without suggestions, and the run is recorded in the run history.
+- Result: Not run
 
-### D1. 操作中は待機し、無操作で実行
-- 手順: 設定で実行間隔（分）を 1、アイドル判定（秒）を 15 にして保存する。重複タブを用意し、1 分経過後も PC を操作し続ける。その後、操作をやめて 15 秒以上放置する。
-- 期待結果: 操作中は実行されず待機する。無操作になった後に実行され、実行履歴に「定期」の契機で記録される。
-- 結果: 未実施
+## D. Scheduled runs
 
-## E. Ollama（LLM）
+### D1. Wait while active, run when idle
+- Steps: In settings, set the run interval (minutes) to 1 and the idle threshold (seconds) to 15, and save. Prepare duplicate tabs and keep using the computer for more than 1 minute. Then stop and leave it idle for 15+ seconds.
+- Expected: Nothing runs while you are active. It runs after you become idle, and the run history records it with the "定期" (scheduled) trigger.
+- Result: Not run
 
-### E1. 接続テストでモデル候補が出る
-- 手順: 準備の手順で Ollama を起動し、設定画面で「接続テスト」を押す。
-- 期待結果: 「接続しました（モデル N 件）」（N は取得済みモデル数）と表示され、モデル欄の候補（datalist）に取得済みモデルが出る。
-- 結果: 未実施
+## E. Ollama (LLM)
 
-### E2. Ollama 実機との接続と分類
-- 手順: LLM を有効にし、グループ分けを「提案」で実行する。
-- 期待結果: LLM による分類の提案が出る。ポップアップの「LLM の状態」が正常を示す。
-- 結果: 未実施
+### E1. The connection test lists models
+- Steps: Start Ollama as described in Setup and press "接続テスト" (connection test) on the settings page.
+- Expected: "接続しました（モデル N 件）" (connected, N models) is shown, where N is the number of pulled models, and the pulled models appear as suggestions (datalist) in the model field.
+- Result: Not run
 
-### E3. Ollama 未起動時にドメイン分類へ切り替わり、通知が 1 回だけ出る
-- 前提: 先に E2 を実施し、ポップアップの「LLM の状態」が「正常」になっていること（通知は「正常」からエラーに変わったときだけ出るため）。
-- 手順: Ollama を停止し、LLM を有効にしたまま実行する。続けて 2 回目も実行する。
-- 期待結果: ドメインベースの分類にフォールバックして動作する。「LLM に接続できません。ドメイン単位の分類に切り替えました」という通知が 1 回だけ出て、2 回目以降は繰り返し出ない。
-- 結果: 未実施
+### E2. Connect to a real Ollama and classify
+- Steps: Enable the LLM and run with grouping set to "提案" (suggest).
+- Expected: An LLM-based grouping suggestion appears. The popup's "LLM の状態" (LLM status) shows OK.
+- Result: Not run
 
-### E4. OLLAMA_ORIGINS 未設定時の 403 表示
-- 手順: `OLLAMA_ORIGINS` を設定せずに `ollama serve` を起動し、設定画面で接続テストを押す。
-- 期待結果: 403 であることと OLLAMA_ORIGINS の設定が必要なことが分かるエラーが表示される。
-- 結果: 未実施
+### E3. Falls back to domain classification when Ollama is down, with a single notification
+- Precondition: Run E2 first so the popup's "LLM の状態" (LLM status) shows "正常" (OK). A notification is shown only when the status changes from OK to an error.
+- Steps: Stop Ollama and run with the LLM still enabled. Then run a second time.
+- Expected: It works using domain-based classification. The notification "LLM に接続できません。ドメイン単位の分類に切り替えました" (cannot reach the LLM; switched to domain classification) appears once and does not repeat on the second run.
+- Result: Not run
 
-### E5. 遅いモデルで大量のタブを分類しても実行が最後まで記録される
-- 手順: 応答の遅いモデル（例: 大きめのモデル、または CPU 実行）を設定し、タイムアウト（秒）を 120 などの大きい値にする。分類対象のタブを 50 枚以上開き、「今すぐ実行」を押して、分類が終わるまで（1 分以上かかる状態で）待つ。
-- 期待結果: 実行中に拡張のバックグラウンドが止まらず、分類が終わると設定画面の「実行履歴」にこの実行が記録される（方式が LLM または混合）。
-- 結果: 未実施
+### E4. 403 message when OLLAMA_ORIGINS is not set
+- Steps: Start `ollama serve` without `OLLAMA_ORIGINS` and press the connection test button on the settings page.
+- Expected: An error makes clear that the response was 403 and that `OLLAMA_ORIGINS` must be set.
+- Result: Not run
 
-## F. 元に戻す（大量）
+### E5. A run with a slow model and many tabs is still recorded to the end
+- Steps: Configure a slow model (e.g. a larger model, or CPU inference) and set the timeout (seconds) to a large value such as 120. Open 50+ tabs to classify, press "今すぐ実行" (Run now), and wait until classification finishes (taking over a minute).
+- Expected: The extension's background does not stop mid-run, and when classification finishes the run appears in "実行履歴" (run history) on the settings page (method: LLM or mixed).
+- Result: Not run
 
-### F1. 26 枚以上の重複を閉じてから元に戻す（Review Focus 5）
-- 手順: 同じ URL のタブを 27 枚以上開き、重複統合を実行して 26 枚以上閉じる。直後に「元に戻す」を押す。
-- 期待結果: 閉じたタブが全部戻る。Firefox の「最近閉じたタブ」から探すのは直近 25 件まで（sessions API の上限）なので、それを超えた分は新規タブとして開き直される。それでも閉じたタブの数と同数が戻る（上限で打ち切られない）。
-- 結果: 未実施
+## F. Undo (many tabs)
 
-## G. 実行履歴
+### F1. Close 26+ duplicates, then undo (Review Focus 5)
+- Steps: Open 27+ tabs with the same URL and run duplicate merging so that 26+ are closed. Immediately press "元に戻す" (Undo).
+- Expected: All closed tabs come back. Firefox's recently closed list is searched only for the last 25 entries (the sessions API limit), so any beyond that are reopened as new tabs. The number of tabs restored still equals the number closed (not capped at the limit).
+- Result: Not run
 
-### G1. 設定画面の実行履歴表示
-- 手順: A、B、C、D の実行をいくつか行った後、設定画面の「実行履歴」を見る。
-- 期待結果: 日時・契機・閉じた・グループ化・方式・備考の列で、新しい実行から順に履歴が表示される。
-- 結果: 未実施
+## G. Run history
 
-## lint 結果
+### G1. Run history on the settings page
+- Steps: After several runs from A, B, C, and D, open "実行履歴" (run history) on the settings page.
+- Expected: The history is shown newest first, with columns for time, trigger, closed, grouped, method, and notes.
+- Result: Not run
 
-実行コマンド: `npm run build:firefox && npx web-ext lint -s .output/firefox-mv3`
+## Lint results
 
-日付: 2026-10-11（最低対応バージョンを 140 に引き上げた後に再実行）
+Command: `npm run build:firefox && npx web-ext lint -s .output/firefox-mv3`
 
-サマリ: errors 0 / warnings 1 / notices 0
+Date: 2026-10-11 (re-run after raising the minimum version to 140)
 
-以前の `MISSING_DATA_COLLECTION_PERMISSIONS` 警告は、manifest に `browser_specific_settings.gecko.data_collection_permissions: { required: ["none"] }` を追加して解消した。最低対応バージョンを 140 に上げたことで、デスクトップ版の `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` 警告も解消した。
+Summary: errors 0 / warnings 1 / notices 0
 
-残る警告（verbatim）:
+The earlier `MISSING_DATA_COLLECTION_PERMISSIONS` warning was resolved by adding `browser_specific_settings.gecko.data_collection_permissions: { required: ["none"] }` to the manifest. Raising the minimum version to 140 also resolved the desktop `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` warning.
+
+Remaining warning (verbatim):
 
 - code: `KEY_FIREFOX_ANDROID_UNSUPPORTED_BY_MIN_VERSION`
 - message: Manifest key not supported by the specified minimum Firefox for Android version
 - description: "strict_min_version" requires Firefox for Android 140, which was released before version 142 introduced support for "browser_specific_settings.gecko.data_collection_permissions".
 - file: manifest.json
 
-エラー: なし
+Errors: none
 
-備考: Firefox for Android で `data_collection_permissions` が使えるのは 142 から。Android 対応をどうするか（対象外にする / Android の最低バージョンを 142 にする）は AMO 申請時に決める。
+Note: Firefox for Android supports `data_collection_permissions` from 142. Whether to support Android (exclude it, or set the Android minimum to 142) will be decided when submitting to AMO.
