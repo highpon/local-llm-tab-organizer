@@ -142,6 +142,9 @@ $('form').addEventListener('submit', async (ev) => {
   const baseUrl = $<HTMLInputElement>('baseUrl').value.trim();
   const pattern = originPattern(baseUrl);
   if (enabled && !pattern) return show('status', 'ベース URL が正しくありません。', true);
+  if (enabled && $<HTMLInputElement>('model').value.trim() === '') {
+    return show('status', 'LLM を使うにはモデル名を入力してください（「接続テスト」で候補を表示できます）。', true);
+  }
   try {
     let granted = true;
     if (enabled && pattern) granted = await browser.permissions.request({ origins: [pattern] });

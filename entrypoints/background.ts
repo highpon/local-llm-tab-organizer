@@ -28,21 +28,29 @@ async function handleMessage(msg: Message): Promise<unknown> {
 }
 
 export default defineBackground(() => {
+  // The idle detection interval is not persisted: set it on every event-page start.
+  // Not awaited, so the listeners below are still registered synchronously.
+  loadSettings()
+    .then((s) => browser.idle.setDetectionInterval(s.schedule.idleSeconds))
+    .catch(console.error);
+
   // All listeners are registered synchronously: the MV3 event page is restarted per event.
-  browser.runtime.onInstalled.addListener(() => void setupSchedule());
+  browser.runtime.onInstalled.addListener(() => {
+    setupSchedule().catch(console.error);
+  });
   browser.runtime.onStartup.addListener(() => {
     // Tab ids do not survive a browser restart, so the previous session's undo record is useless.
-    void clearUndo();
-    void setupSchedule();
+    clearUndo().catch(console.error);
+    setupSchedule().catch(console.error);
   });
 
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== ALARM_NAME) return;
-    void handleAlarm((sec) => browser.idle.queryState(sec), runCycle);
+    handleAlarm((sec) => browser.idle.queryState(sec), runCycle).catch(console.error);
   });
 
   browser.idle.onStateChanged.addListener((state) => {
-    void handleIdleChange(state, runCycle);
+    handleIdleChange(state, runCycle).catch(console.error);
   });
 
   browser.runtime.onMessage.addListener((message: unknown) => {
