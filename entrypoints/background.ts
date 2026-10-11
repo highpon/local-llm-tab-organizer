@@ -1,7 +1,7 @@
 import { runCycle, applyPending, discardPending } from '../services/orchestrator';
 import { ALARM_NAME, ensureAlarm, handleAlarm, handleIdleChange, type Message } from '../services/scheduler';
 import { loadSettings } from '../services/settings';
-import { undoLast } from '../services/undoLog';
+import { clearUndo, undoLast } from '../services/undoLog';
 
 async function setupSchedule(): Promise<void> {
   const settings = await loadSettings();
@@ -30,7 +30,11 @@ async function handleMessage(msg: Message): Promise<unknown> {
 export default defineBackground(() => {
   // All listeners are registered synchronously: the MV3 event page is restarted per event.
   browser.runtime.onInstalled.addListener(() => void setupSchedule());
-  browser.runtime.onStartup.addListener(() => void setupSchedule());
+  browser.runtime.onStartup.addListener(() => {
+    // Tab ids do not survive a browser restart, so the previous session's undo record is useless.
+    void clearUndo();
+    void setupSchedule();
+  });
 
   browser.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name !== ALARM_NAME) return;

@@ -9,7 +9,7 @@ import { listRuns } from '../../services/runHistory';
 import { saveSettings, DEFAULT_SETTINGS, type Settings } from '../../services/settings';
 import { loadUndo } from '../../services/undoLog';
 
-const NOW = 1_000_000_000;
+const NOW = Date.now();
 
 const tab = (id: number, url: string, over: Partial<TabInfo> = {}): TabInfo => ({
   id, windowId: 1, url, title: `t${id}`, pinned: false, active: false, audible: false,

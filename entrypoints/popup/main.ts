@@ -169,6 +169,7 @@ $('run').addEventListener('click', async () => {
 });
 
 $('undo').addEventListener('click', async () => {
+  $<HTMLButtonElement>('undo').disabled = true; // render() re-enables it only if a record remains
   try {
     const r = (await send({ type: 'undo' })) as { restored: number; ungrouped: number } | undefined;
     setMessage(r ? `復元 ${r.restored} 件 / グループ解除 ${r.ungrouped} 件` : '元に戻しました');
