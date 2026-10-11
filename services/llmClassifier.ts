@@ -1,11 +1,11 @@
 import { classifyByDomain } from '../core/classifyByDomain';
+import { clipGroupName } from '../core/nameCluster';
 import type { Assignment, ClassifyErrorKind, ClassifyMethod, LlmErrorKind, TabInfo } from '../core/types';
 import { uiLanguage } from './i18n';
 import { chatCompletion, LlmError, type ChatMessage } from './llmClient';
 import type { Settings } from './settings';
 
 const BATCH_SIZE = 50;
-const MAX_GROUP_NAME = 40; // characters
 /** Errors meaning the server cannot be reached at all; retrying the next batch would only wait again. */
 const FATAL_KINDS: ReadonlySet<LlmErrorKind> = new Set(['unreachable', 'timeout', 'forbidden']);
 
@@ -25,7 +25,7 @@ export function parseAssignments(content: string, validTabIds: Set<number>): Ass
     if (typeof tabId !== 'number' || !validTabIds.has(tabId) || seen.has(tabId)) continue;
     if (typeof group !== 'string' || group.trim() === '') continue;
     seen.add(tabId);
-    out.push({ tabId, group: [...group.trim()].slice(0, MAX_GROUP_NAME).join('').trim() });
+    out.push({ tabId, group: clipGroupName(group) });
   }
   return out;
 }
