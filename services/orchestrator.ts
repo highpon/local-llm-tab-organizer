@@ -57,7 +57,7 @@ function defaultDeps(): RunDeps {
     classify,
     notify: async (id, message) => {
       await browser.notifications.create(id, {
-        type: 'basic', title: 'tab-tidy', message, iconUrl: browser.runtime.getURL('/icon.svg'),
+        type: 'basic', title: 'Local LLM Tab Organizer', message, iconUrl: browser.runtime.getURL('/icon.svg'),
       });
     },
     now: Date.now,
@@ -77,7 +77,7 @@ async function updateLlmStatus(error: ClassifyErrorKind | undefined, d: RunDeps)
   const next = error ?? 'ok';
   await browser.storage.local.set({ [LLM_STATUS_KEY]: next });
   if (next !== 'ok' && (prev === undefined || prev === 'ok')) {
-    await d.notify('tab-tidy-llm', next === 'forbidden' ? t('notifyForbidden') : t('notifyLlmFallback'));
+    await d.notify('local-llm-tab-organizer-llm', next === 'forbidden' ? t('notifyForbidden') : t('notifyLlmFallback'));
   }
 }
 
@@ -153,11 +153,11 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
           if (settings.dedupe.mode === 'auto') {
             closed.push(...(await d.applyDedupe(plan)).closed);
             snap = await d.snapshot();
-            if (closed.length > 0) await d.notify('tab-tidy-dedupe', t('notifyClosed', closed.length));
+            if (closed.length > 0) await d.notify('local-llm-tab-organizer-dedupe', t('notifyClosed', closed.length));
           } else {
             // Notify only when the suggestion changed, not on every interval.
             if (await savePendingKind('dedupe', plan, at)) {
-              await d.notify('tab-tidy-dedupe',
+              await d.notify('local-llm-tab-organizer-dedupe',
                 t('notifyDedupeSuggest', plan.closes.length));
             }
           }
@@ -184,7 +184,7 @@ export async function runCycle(trigger: Trigger, deps: Partial<RunDeps> = {}): P
             grouped.push(...(await d.applyGrouping(plan)).grouped);
           } else {
             if (await savePendingKind('grouping', plan, at)) {
-              await d.notify('tab-tidy-grouping',
+              await d.notify('local-llm-tab-organizer-grouping',
                 t('notifyGroupingSuggest', n));
             }
           }

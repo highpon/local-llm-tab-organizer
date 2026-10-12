@@ -28,8 +28,8 @@ function defaultDeps(): ModelDeps {
   return {
     client: () => createMlClient(),
     notify: async (message) => {
-      await browser.notifications.create('tab-tidy-model', {
-        type: 'basic', title: 'tab-tidy', message, iconUrl: browser.runtime.getURL('/icon.svg'),
+      await browser.notifications.create('local-llm-tab-organizer-model', {
+        type: 'basic', title: 'Local LLM Tab Organizer', message, iconUrl: browser.runtime.getURL('/icon.svg'),
       });
     },
     now: Date.now,

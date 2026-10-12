@@ -67,7 +67,7 @@ describe('runCycle', () => {
     expect(pending?.grouping).toBeDefined();
     expect(pending?.dedupe).toBeUndefined();
     expect(deps.notify).toHaveBeenCalledTimes(2); // dedupe closed + grouping suggestion
-    expect(deps.notify).toHaveBeenCalledWith('tab-tidy-dedupe', 'Closed 1 duplicate tabs');
+    expect(deps.notify).toHaveBeenCalledWith('local-llm-tab-organizer-dedupe', 'Closed 1 duplicate tabs');
     expect(rec).toMatchObject({ closed: 1, grouped: 0, method: 'domain', skipped: false });
     expect(await listRuns()).toHaveLength(1);
   });
@@ -146,7 +146,7 @@ describe('runCycle', () => {
     const deps = makeDeps({ classify });
     await runCycle('manual', deps);
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBeUndefined();
-    expect(deps.notify.mock.calls.filter((c: unknown[]) => c[0] === 'tab-tidy-llm')).toHaveLength(0);
+    expect(deps.notify.mock.calls.filter((c: unknown[]) => c[0] === 'local-llm-tab-organizer-llm')).toHaveLength(0);
   });
 
   it('classifies by domain when the classifier is domain', async () => {
@@ -184,7 +184,7 @@ describe('runCycle', () => {
     expect(deps.snapshot).toHaveBeenCalledTimes(1);
     expect(deps.classify.mock.calls[0]![0]).toHaveLength(4);
     expect(deps.notify).toHaveBeenCalledWith(
-      'tab-tidy-dedupe', 'Found 1 duplicate tabs. Review them from the toolbar button.');
+      'local-llm-tab-organizer-dedupe', 'Found 1 duplicate tabs. Review them from the toolbar button.');
   });
 
   it('suggest of one kind keeps the other kind pending', async () => {
@@ -283,8 +283,8 @@ describe('runCycle', () => {
     await runCycle('alarm', deps);
     await runCycle('alarm', deps);
     const byId = (id: string) => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === id);
-    expect(byId('tab-tidy-dedupe')).toHaveLength(1);
-    expect(byId('tab-tidy-grouping')).toHaveLength(1);
+    expect(byId('local-llm-tab-organizer-dedupe')).toHaveLength(1);
+    expect(byId('local-llm-tab-organizer-grouping')).toHaveLength(1);
     expect((await loadPending())?.dedupe?.closes).toHaveLength(1);
   });
 
@@ -297,8 +297,8 @@ describe('runCycle', () => {
     }));
     await runCycle('alarm', deps);
     const byId = (id: string) => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === id);
-    expect(byId('tab-tidy-dedupe')).toHaveLength(2);
-    expect(byId('tab-tidy-grouping')).toHaveLength(2);
+    expect(byId('local-llm-tab-organizer-dedupe')).toHaveLength(2);
+    expect(byId('local-llm-tab-organizer-grouping')).toHaveLength(2);
   });
 
   it('notifies about a 403 only on the transition into the error state', async () => {
@@ -309,7 +309,7 @@ describe('runCycle', () => {
     }));
     const deps = makeDeps({ classify });
     await runCycle('manual', deps);
-    const llmCalls = () => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === 'tab-tidy-llm');
+    const llmCalls = () => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === 'local-llm-tab-organizer-llm');
     expect(llmCalls()).toHaveLength(1);
     expect(llmCalls()[0]![1]).toContain('OLLAMA_ORIGINS=moz-extension://*');
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBe('forbidden');
@@ -324,7 +324,7 @@ describe('runCycle', () => {
     }));
     const deps = makeDeps({ classify: err });
     await runCycle('manual', deps);
-    expect(deps.notify).toHaveBeenCalledWith('tab-tidy-llm', 'Cannot reach the LLM. Switched to grouping by domain.');
+    expect(deps.notify).toHaveBeenCalledWith('local-llm-tab-organizer-llm', 'Cannot reach the LLM. Switched to grouping by domain.');
     await runCycle('manual', makeDeps());
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBe('ok');
   });

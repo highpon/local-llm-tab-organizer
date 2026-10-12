@@ -1,5 +1,5 @@
 {
-  "name": "tab-tidy",
+  "name": "local-llm-tab-organizer",
   "description": "Merges duplicate tabs and sorts tabs into tab groups using on-device AI, a local LLM, or by domain.",
   "private": true,
   "version": "0.1.0",

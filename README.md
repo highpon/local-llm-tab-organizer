@@ -1,4 +1,4 @@
-# tab-tidy
+# Local LLM Tab Organizer
 
 A Firefox extension that tidies your open tabs on a schedule.
 

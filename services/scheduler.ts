@@ -1,7 +1,7 @@
 import { loadSettings, type Settings } from './settings';
 import type { Trigger } from './runHistory';
 
-export const ALARM_NAME = 'tab-tidy-run';
+export const ALARM_NAME = 'local-llm-tab-organizer-run';
 const PENDING_KEY = 'runPending';
 
 export type IdleState = 'active' | 'idle' | 'locked';
