@@ -1,6 +1,6 @@
 {
   "name": "tab-tidy",
-  "description": "Merges duplicate tabs and sorts tabs into tab groups using a local LLM or by domain.",
+  "description": "Merges duplicate tabs and sorts tabs into tab groups using on-device AI, a local LLM, or by domain.",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -23,6 +23,7 @@
     "wxt": "^0.21.3"
   },
   "dependencies": {
+    "@huggingface/transformers": "4.3.1",
     "tldts": "^7.4.18"
   }
 }

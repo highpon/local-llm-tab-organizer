@@ -16,6 +16,9 @@
   .error { color: #c33; }
   .muted { opacity: .7; }
   #status { margin-left: 8px; }
+  .sub { margin: 4px 0 10px 24px; }
+  fieldset.sub { border: none; padding: 0; }
+  fieldset.sub:disabled { opacity: .5; }
 </style>
 </head>
 <body>
@@ -35,14 +38,24 @@
     </label>
   </fieldset>
   <fieldset>
-    <legend data-i18n="llmLegend"></legend>
-    <label><input type="checkbox" id="llmEnabled"> <span data-i18n="llmEnabledLabel"></span></label>
-    <label><span data-i18n="baseUrlLabel"></span> <input type="url" id="baseUrl"></label>
-    <label><span data-i18n="modelLabel"></span> <input type="text" id="model" name="model" list="models" autocomplete="off"></label>
-    <datalist id="models"></datalist>
-    <label><span data-i18n="timeoutLabel"></span> <input type="number" id="timeoutSeconds" min="1" step="1"></label>
-    <button type="button" id="test" data-i18n="testButton"></button>
-    <div id="testResult" role="status"></div>
+    <legend data-i18n="classifierLegend"></legend>
+    <label><input type="radio" name="classifier" value="onDevice"> <span data-i18n="classifierOnDevice"></span></label>
+    <div class="sub">
+      <div id="modelStatus" role="status" class="muted"></div>
+      <button type="button" id="downloadModels" data-i18n="downloadModels"></button>
+      <button type="button" id="deleteModels" data-i18n="deleteModels"></button>
+      <div class="muted" data-i18n="onDeviceNote"></div>
+    </div>
+    <label><input type="radio" name="classifier" value="llm"> <span data-i18n="classifierLlm"></span></label>
+    <fieldset id="llmFields" class="sub">
+      <label><span data-i18n="baseUrlLabel"></span> <input type="url" id="baseUrl"></label>
+      <label><span data-i18n="modelLabel"></span> <input type="text" id="model" name="model" list="models" autocomplete="off"></label>
+      <datalist id="models"></datalist>
+      <label><span data-i18n="timeoutLabel"></span> <input type="number" id="timeoutSeconds" min="1" step="1"></label>
+      <button type="button" id="test" data-i18n="testButton"></button>
+      <div id="testResult" role="status"></div>
+    </fieldset>
+    <label><input type="radio" name="classifier" value="domain"> <span data-i18n="classifierDomain"></span></label>
   </fieldset>
   <fieldset>
     <legend data-i18n="scheduleLegend"></legend>

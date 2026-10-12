@@ -13,7 +13,7 @@ The extension's UI follows the browser language (English or Japanese). UI labels
    - Install Ollama.
    - Start it with extension access allowed: `OLLAMA_ORIGINS=moz-extension://* ollama serve`
    - Pull a small model (e.g. `ollama pull qwen2.5:1.5b`).
-   - On the settings page, turn on "Classify with an LLM" ("LLM を使って分類する"), set the base URL to `http://localhost:11434/v1` (Ollama's default), and set the model to the one you pulled.
+   - On the settings page, select "Local LLM server" ("ローカル LLM サーバー") as the classification method, set the base URL to `http://localhost:11434/v1` (Ollama's default), and set the model to the one you pulled.
 5. Before each item, set the relevant modes in the popup and settings page, and reopen the test tabs.
 
 ## A. Merging duplicates and undo
@@ -122,6 +122,45 @@ The extension's UI follows the browser language (English or Japanese). UI labels
 - Expected: The extension's background does not stop mid-run, and when classification finishes the run appears in "Run history" ("実行履歴") on the settings page (method: LLM or mixed).
 - Result: Not run
 
+## I. On-device AI
+
+Use a fresh Firefox profile so no models are cached. I1–I3 were checked headless in Firefox 157 on 2026-10-11 with temporary probes (results below); the rest need a person.
+
+### I1. Models load in the extension's Worker and stay cached
+- Steps: Fresh profile, default settings. Run once, wait for the download, restart Firefox with the same profile, run again.
+- Expected: The second session loads the models from the cache without downloading them again.
+- Result: Pass (headless probe: 12 cached files after restart; load 8.4 s first, 3.3 s cached)
+
+### I2. Download needs no host permission
+- Steps: Check `about:addons` → tab-tidy → Permissions after the download.
+- Expected: No website permissions were requested or granted.
+- Result: Pass (headless probe: `permissions.getAll().origins` was empty)
+
+### I3. First run falls back, second run groups by content
+- Steps: Fresh profile, grouping "Auto" ("自動"). Open English and Japanese tabs on a few topics (e.g. GitHub pull requests, TypeScript docs, curry recipes in both languages, Japanese train timetables). Press "Run now" ("今すぐ実行"), wait for "Model: ready" ("モデル: 準備完了"), ungroup the tabs, press "Run now" again.
+- Expected: The first run groups by domain and its history note says the model was not ready. The second run's method is "On-device AI" ("端末内 AI") and related tabs, including English and Japanese ones, share groups.
+- Result: Pass (headless probe: first run `domain` + `modelNotReady`; download 20 s; second run `onDevice`, 10 tabs in 5 groups: "Developer", "Documentation", "カレー curry", "乗換 運行", "Wikipedia")
+
+### I4. Download progress and status in the UI
+- Steps: Fresh profile. Open the settings page and press "Download now" ("今すぐダウンロード"); open the popup while it downloads.
+- Expected: The settings page and the popup show "Model: downloading… N%" rising to "Model: ready". "Download now" is disabled while downloading and once ready.
+- Result: Not run
+
+### I5. Offline download failure
+- Steps: Fresh profile, go offline (File → Work Offline, or disconnect), press "Run now". Go back online and press "Download now".
+- Expected: The run groups by domain; the status shows "Model: download failed (…)" and one notification "Could not download the on-device AI models…" appears. "Download now" then succeeds.
+- Result: Not run
+
+### I6. Delete downloaded models
+- Steps: With the model ready, press "Delete downloaded models" ("ダウンロード済みモデルを削除").
+- Expected: The status returns to "Model: not downloaded yet"; the next run downloads again.
+- Result: Not run
+
+### I7. Classification method switch
+- Steps: On the settings page, select each classification method in turn.
+- Expected: The LLM fields are enabled only for "Local LLM server"; saving with "On-device AI" or "By domain" asks for no permission. The popup's "Classification" ("分類") section follows the selected method.
+- Result: Not run
+
 ## F. Undo (many tabs)
 
 ### F1. Close 26+ duplicates, then undo (Review Focus 5)
@@ -147,9 +186,18 @@ The extension's UI follows the browser language (English or Japanese). UI labels
 
 Command: `npm run build:firefox && npx web-ext lint -s .output/firefox-mv3`
 
-Date: 2026-10-11 (re-run after raising the minimum version to 140)
+Date: 2026-10-11 (re-run after adding the on-device classifier)
 
-Summary: errors 0 / warnings 1 / notices 0
+Summary: errors 0 / warnings 3 / notices 0
+
+Warnings added by the bundled ONNX Runtime (third-party code, not changed by us):
+
+- `DANGEROUS_EVAL` in `ort/ort-wasm-simd-threaded.asyncify.mjs` (the Emscripten loader uses the `Function` constructor)
+- `UNSAFE_VAR_ASSIGNMENT` in `assets/worker-*.js` (ONNX Runtime imports its WASM loader from a computed URL inside the extension)
+
+AMO reviewers will see these; the submission notes should say they come from `onnxruntime-web` and that every loaded file is packaged in the extension.
+
+Earlier summary (before the on-device classifier): errors 0 / warnings 1 / notices 0
 
 The earlier `MISSING_DATA_COLLECTION_PERMISSIONS` warning was resolved by adding `browser_specific_settings.gecko.data_collection_permissions: { required: ["none"] }` to the manifest. Raising the minimum version to 140 also resolved the desktop `KEY_FIREFOX_UNSUPPORTED_BY_MIN_VERSION` warning.
 

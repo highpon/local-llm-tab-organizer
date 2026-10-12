@@ -39,10 +39,39 @@ describe('settings', () => {
     const s: Settings = {
       dedupe: { mode: 'suggest', acrossWindows: true },
       grouping: { mode: 'off' },
-      llm: { enabled: true, baseUrl: 'http://x/v1', model: 'm', timeoutSeconds: 10 },
+      classifier: 'llm',
+      llm: { baseUrl: 'http://x/v1', model: 'm', timeoutSeconds: 10 },
       schedule: { intervalMinutes: 5, idleSeconds: 30 },
     };
     await saveSettings(s);
     expect(await loadSettings()).toEqual(s);
+  });
+
+  it('defaults to onDevice', async () => {
+    expect((await loadSettings()).classifier).toBe('onDevice');
+  });
+
+  it('migrates llm.enabled true to llm', async () => {
+    await browser.storage.local.set({
+      settings: { llm: { enabled: true, baseUrl: 'http://h/v1', model: 'm', timeoutSeconds: 9 } },
+    });
+    const s = await loadSettings();
+    expect(s.classifier).toBe('llm');
+    expect(s.llm).toEqual({ baseUrl: 'http://h/v1', model: 'm', timeoutSeconds: 9 });
+  });
+
+  it('migrates llm.enabled false to onDevice', async () => {
+    await browser.storage.local.set({ settings: { llm: { enabled: false } } });
+    expect((await loadSettings()).classifier).toBe('onDevice');
+  });
+
+  it('keeps a stored classifier over llm.enabled', async () => {
+    await browser.storage.local.set({ settings: { classifier: 'domain', llm: { enabled: true } } });
+    expect((await loadSettings()).classifier).toBe('domain');
+  });
+
+  it('rejects an unknown classifier', async () => {
+    await browser.storage.local.set({ settings: { classifier: 'x' } });
+    expect((await loadSettings()).classifier).toBe('onDevice');
   });
 });

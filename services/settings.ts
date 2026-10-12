@@ -1,16 +1,20 @@
 import type { Mode } from '../core/types';
 
+export type ClassifierKind = 'onDevice' | 'llm' | 'domain';
+
 export interface Settings {
   dedupe: { mode: Mode; acrossWindows: boolean };
   grouping: { mode: Mode };
-  llm: { enabled: boolean; baseUrl: string; model: string; timeoutSeconds: number };
+  classifier: ClassifierKind;
+  llm: { baseUrl: string; model: string; timeoutSeconds: number };
   schedule: { intervalMinutes: number; idleSeconds: number };
 }
 
 export const DEFAULT_SETTINGS: Settings = {
   dedupe: { mode: 'auto', acrossWindows: false },
   grouping: { mode: 'suggest' },
-  llm: { enabled: false, baseUrl: 'http://localhost:11434/v1', model: '', timeoutSeconds: 30 },
+  classifier: 'onDevice',
+  llm: { baseUrl: 'http://localhost:11434/v1', model: '', timeoutSeconds: 30 },
   schedule: { intervalMinutes: 30, idleSeconds: 60 },
 };
 
@@ -23,6 +27,13 @@ const isRecord = (v: unknown): v is Record<string, unknown> =>
 
 const MODES: readonly string[] = ['auto', 'suggest', 'off'];
 const pickMode = (v: unknown, d: Mode): Mode => (typeof v === 'string' && MODES.includes(v) ? (v as Mode) : d);
+const CLASSIFIERS: readonly string[] = ['onDevice', 'llm', 'domain'];
+/** A stored classifier wins; otherwise settings from before it existed map llm.enabled: true to 'llm'. */
+const pickClassifier = (v: unknown, legacyLlmEnabled: unknown, d: ClassifierKind): ClassifierKind => {
+  if (typeof v === 'string' && CLASSIFIERS.includes(v)) return v as ClassifierKind;
+  if (v === undefined && legacyLlmEnabled === true) return 'llm';
+  return d;
+};
 const pickBool = (v: unknown, d: boolean): boolean => (typeof v === 'boolean' ? v : d);
 const pickString = (v: unknown, d: string): string => (typeof v === 'string' ? v : d);
 const pickNumber = (v: unknown, d: number, min: number): number =>
@@ -41,8 +52,8 @@ function mergeSettings(raw: unknown): Settings {
       acrossWindows: pickBool(dedupe.acrossWindows, d.dedupe.acrossWindows),
     },
     grouping: { mode: pickMode(grouping.mode, d.grouping.mode) },
+    classifier: pickClassifier(r.classifier, llm.enabled, d.classifier),
     llm: {
-      enabled: pickBool(llm.enabled, d.llm.enabled),
       baseUrl: pickString(llm.baseUrl, d.llm.baseUrl),
       model: pickString(llm.model, d.llm.model),
       timeoutSeconds: pickNumber(llm.timeoutSeconds, d.llm.timeoutSeconds, 1),

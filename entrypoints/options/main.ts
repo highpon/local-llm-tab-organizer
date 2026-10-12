@@ -1,15 +1,18 @@
 import type { Mode } from '../../core/types';
 import { formatTime, localizeDocument, t } from '../../services/i18n';
 import { LlmError, listModels } from '../../services/llmClient';
+import { loadModelStatus, MODEL_STATUS_KEY, modelStatusText, type ModelStatus } from '../../services/modelManager';
 import { listRuns } from '../../services/runHistory';
 import type { Message } from '../../services/scheduler';
-import { loadSettings, saveSettings, type Settings } from '../../services/settings';
+import { loadSettings, saveSettings, type ClassifierKind, type Settings } from '../../services/settings';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const modeLabels = (): [Mode, string][] => [['auto', t('modeAuto')], ['suggest', t('modeSuggest')], ['off', t('modeOff')]];
 const triggerLabels = () => ({ alarm: t('triggerAlarm'), idle: t('triggerIdle'), manual: t('triggerManual') });
-const methodLabels = () => ({ llm: t('methodLlm'), domain: t('methodDomain'), mixed: t('methodMixed') });
+const methodLabels = () => ({
+  llm: t('methodLlm'), onDevice: t('methodOnDevice'), domain: t('methodDomain'), mixed: t('methodMixed'),
+});
 
 const errorText = (kind: string): string | undefined => ({
   unreachable: t('errUnreachable'),
@@ -18,6 +21,28 @@ const errorText = (kind: string): string | undefined => ({
   http: t('errHttp'),
   badResponse: t('errBadResponse'),
 } as Record<string, string>)[kind];
+
+/** History note for a classification that fell back to domain grouping. */
+const fallbackNote = (kind: string): string => ({
+  modelNotReady: t('noteModelNotReady'),
+  modelDownloadFailed: t('noteModelDownloadFailed'),
+  inferenceFailed: t('noteInferenceFailed'),
+} as Record<string, string>)[kind] ?? errorText(kind) ?? kind;
+
+const classifierRadios = () => [...document.querySelectorAll<HTMLInputElement>('input[name="classifier"]')];
+const selectedClassifier = (): ClassifierKind =>
+  (classifierRadios().find((r) => r.checked)?.value ?? 'onDevice') as ClassifierKind;
+
+/** The LLM fields only apply to the LLM classifier. */
+function updateClassifierFields(): void {
+  $<HTMLFieldSetElement>('llmFields').disabled = selectedClassifier() !== 'llm';
+}
+
+function renderModelStatus(status: ModelStatus): void {
+  show('modelStatus', modelStatusText(status), status.state === 'error');
+  $<HTMLButtonElement>('downloadModels').disabled = status.state === 'ready' || status.state === 'downloading';
+  $<HTMLButtonElement>('deleteModels').disabled = status.state === 'missing';
+}
 
 function fillModes(select: HTMLSelectElement): void {
   for (const [value, label] of modeLabels()) {
@@ -38,7 +63,8 @@ function fillForm(s: Settings): void {
   $<HTMLSelectElement>('dedupeMode').value = s.dedupe.mode;
   $<HTMLInputElement>('acrossWindows').checked = s.dedupe.acrossWindows;
   $<HTMLSelectElement>('groupingMode').value = s.grouping.mode;
-  $<HTMLInputElement>('llmEnabled').checked = s.llm.enabled;
+  for (const r of classifierRadios()) r.checked = r.value === s.classifier;
+  updateClassifierFields();
   $<HTMLInputElement>('baseUrl').value = s.llm.baseUrl;
   $<HTMLInputElement>('model').value = s.llm.model;
   $<HTMLInputElement>('timeoutSeconds').value = String(s.llm.timeoutSeconds);
@@ -62,8 +88,8 @@ function readForm(): Settings {
       acrossWindows: $<HTMLInputElement>('acrossWindows').checked,
     },
     grouping: { mode: $<HTMLSelectElement>('groupingMode').value as Mode },
+    classifier: selectedClassifier(),
     llm: {
-      enabled: $<HTMLInputElement>('llmEnabled').checked,
       baseUrl: $<HTMLInputElement>('baseUrl').value.trim(),
       model: $<HTMLInputElement>('model').value.trim(),
       timeoutSeconds: readInt('timeoutSeconds', 1, t('fieldTimeout')),
@@ -97,7 +123,7 @@ async function renderHistory(): Promise<void> {
       String(r.closed),
       String(r.grouped),
       r.method ? methodLabels()[r.method] : '-',
-      r.skipped ? t('skipped') : r.error ?? '',
+      r.skipped ? t('skipped') : r.error ?? (r.classifyError ? fallbackNote(r.classifyError) : ''),
     ];
     for (const c of cells) {
       const td = document.createElement('td');
@@ -119,7 +145,7 @@ $('test').addEventListener('click', async () => {
     if (!granted) return show('testResult', t('permissionDenied'), true);
     const timeoutSeconds = Math.max(1, Number($<HTMLInputElement>('timeoutSeconds').value) || 30);
     const models = await listModels({
-      enabled: true, baseUrl, model: '', timeoutSeconds,
+      baseUrl, model: '', timeoutSeconds,
     });
     const list = $('models');
     list.replaceChildren();
@@ -137,7 +163,7 @@ $('test').addEventListener('click', async () => {
 
 $('form').addEventListener('submit', async (ev) => {
   ev.preventDefault();
-  const enabled = $<HTMLInputElement>('llmEnabled').checked;
+  const enabled = selectedClassifier() === 'llm';
   const baseUrl = $<HTMLInputElement>('baseUrl').value.trim();
   const pattern = originPattern(baseUrl);
   if (enabled && !pattern) return show('status', t('invalidBaseUrl'), true);
@@ -147,10 +173,7 @@ $('form').addEventListener('submit', async (ev) => {
   try {
     let granted = true;
     if (enabled && pattern) granted = await browser.permissions.request({ origins: [pattern] });
-    if (!granted) {
-      $<HTMLInputElement>('llmEnabled').checked = false;
-      return show('status', t('llmPermissionDenied'), true);
-    }
+    if (!granted) return show('status', t('llmPermissionDenied'), true);
     const s = readForm();
     await saveSettings(s);
     await browser.runtime.sendMessage({ type: 'settingsChanged' } satisfies Message);
@@ -160,11 +183,28 @@ $('form').addEventListener('submit', async (ev) => {
   }
 });
 
+for (const r of classifierRadios()) r.addEventListener('change', updateClassifierFields);
+
+$('downloadModels').addEventListener('click', () => {
+  void browser.runtime.sendMessage({ type: 'downloadModels' } satisfies Message);
+});
+
+$('deleteModels').addEventListener('click', async () => {
+  $<HTMLButtonElement>('deleteModels').disabled = true;
+  await browser.runtime.sendMessage({ type: 'deleteModels' } satisfies Message);
+});
+
+browser.storage.onChanged.addListener((changes, area) => {
+  const change = changes[MODEL_STATUS_KEY];
+  if (area === 'local' && change) renderModelStatus((change.newValue as ModelStatus | undefined) ?? { state: 'missing' });
+});
+
 async function init(): Promise<void> {
   localizeDocument();
   fillModes($('dedupeMode'));
   fillModes($('groupingMode'));
   fillForm(await loadSettings());
+  renderModelStatus(await loadModelStatus());
   await renderHistory();
 }
 void init();

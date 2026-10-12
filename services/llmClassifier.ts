@@ -1,11 +1,11 @@
 import { classifyByDomain } from '../core/classifyByDomain';
-import type { Assignment, ClassifyMethod, LlmErrorKind, TabInfo } from '../core/types';
+import { clipGroupName } from '../core/nameCluster';
+import type { Assignment, ClassifyErrorKind, ClassifyMethod, LlmErrorKind, TabInfo } from '../core/types';
 import { uiLanguage } from './i18n';
 import { chatCompletion, LlmError, type ChatMessage } from './llmClient';
 import type { Settings } from './settings';
 
 const BATCH_SIZE = 50;
-const MAX_GROUP_NAME = 40; // characters
 /** Errors meaning the server cannot be reached at all; retrying the next batch would only wait again. */
 const FATAL_KINDS: ReadonlySet<LlmErrorKind> = new Set(['unreachable', 'timeout', 'forbidden']);
 
@@ -25,12 +25,12 @@ export function parseAssignments(content: string, validTabIds: Set<number>): Ass
     if (typeof tabId !== 'number' || !validTabIds.has(tabId) || seen.has(tabId)) continue;
     if (typeof group !== 'string' || group.trim() === '') continue;
     seen.add(tabId);
-    out.push({ tabId, group: [...group.trim()].slice(0, MAX_GROUP_NAME).join('').trim() });
+    out.push({ tabId, group: clipGroupName(group) });
   }
   return out;
 }
 
-export interface ClassifyResult { assignments: Assignment[]; method: ClassifyMethod; error?: LlmErrorKind }
+export interface ClassifyResult { assignments: Assignment[]; method: ClassifyMethod; error?: ClassifyErrorKind }
 
 function buildMessages(batch: TabInfo[], existingGroupNames: string[]): ChatMessage[] {
   const system =
@@ -55,8 +55,6 @@ export async function classifyTabs(
   tabs: TabInfo[], existingGroupNames: string[], cfg: Settings['llm'],
   chat: (messages: ChatMessage[]) => Promise<string> = m => chatCompletion(cfg, m),
 ): Promise<ClassifyResult> {
-  if (!cfg.enabled) return { assignments: classifyByDomain(tabs), method: 'domain' };
-
   const assignments: Assignment[] = [];
   let error: LlmErrorKind | undefined;
   let llmCount = 0;

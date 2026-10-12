@@ -1,4 +1,5 @@
 import { runCycle, applyPending } from '../services/orchestrator';
+import { deleteModels, ensureModels, resetInterruptedDownload } from '../services/modelManager';
 import { discardPending } from '../services/pending';
 import { ALARM_NAME, ensureAlarm, handleAlarm, handleIdleChange, type Message } from '../services/scheduler';
 import { loadSettings } from '../services/settings';
@@ -24,6 +25,13 @@ async function handleMessage(msg: Message): Promise<unknown> {
     case 'settingsChanged':
       await setupSchedule();
       return undefined;
+    case 'downloadModels':
+      // Not awaited: the settings page follows progress through storage.
+      ensureModels({ force: true }).catch(console.error);
+      return undefined;
+    case 'deleteModels':
+      await deleteModels();
+      return undefined;
   }
 }
 
@@ -33,6 +41,7 @@ export default defineBackground(() => {
   loadSettings()
     .then((s) => browser.idle.setDetectionInterval(s.schedule.idleSeconds))
     .catch(console.error);
+  resetInterruptedDownload().catch(console.error);
 
   // All listeners are registered synchronously: the MV3 event page is restarted per event.
   browser.runtime.onInstalled.addListener(() => {
@@ -55,7 +64,7 @@ export default defineBackground(() => {
 
   browser.runtime.onMessage.addListener((message: unknown) => {
     const type = (message as { type?: unknown } | null)?.type;
-    const known = ['runNow', 'applyPending', 'discardPending', 'undo', 'settingsChanged'];
+    const known = ['runNow', 'applyPending', 'discardPending', 'undo', 'settingsChanged', 'downloadModels', 'deleteModels'];
     if (typeof type !== 'string' || !known.includes(type)) return undefined;
     return handleMessage(message as Message);
   });

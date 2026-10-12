@@ -3,7 +3,7 @@
     "message": "tab-tidy"
   },
   "extDescription": {
-    "message": "重複タブを自動でまとめ、ローカル LLM またはドメインでタブグループに整理します。"
+    "message": "重複タブを自動でまとめ、端末内 AI・ローカル LLM・ドメインのいずれかでタブグループに整理します。"
   },
   "popupTitle": {
     "message": "Tab Tidy"
@@ -19,9 +19,6 @@
   },
   "lastRunHeading": {
     "message": "直近の実行"
-  },
-  "llmStatusHeading": {
-    "message": "LLM の状態"
   },
   "existingGroup": {
     "message": "既存グループ"
@@ -142,12 +139,6 @@
   "groupingLegend": {
     "message": "グループ分け"
   },
-  "llmLegend": {
-    "message": "LLM（Ollama など OpenAI 互換 API）"
-  },
-  "llmEnabledLabel": {
-    "message": "LLM を使って分類する"
-  },
   "baseUrlLabel": {
     "message": "ベース URL"
   },
@@ -216,6 +207,9 @@
   },
   "methodDomain": {
     "message": "ドメイン"
+  },
+  "methodOnDevice": {
+    "message": "端末内 AI"
   },
   "methodMixed": {
     "message": "混合"
@@ -287,6 +281,9 @@
   "notifyForbidden": {
     "message": "LLM に接続できません（403）。OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください"
   },
+  "notifyModelFailed": {
+    "message": "端末内 AI のモデルをダウンロードできませんでした。成功するまではドメイン単位で分類します"
+  },
   "notifyLlmFallback": {
     "message": "LLM に接続できません。ドメイン単位の分類に切り替えました"
   },
@@ -313,5 +310,63 @@
         "content": "$1"
       }
     }
+  },
+  "classifierLegend": {
+    "message": "分類方法"
+  },
+  "classifierOnDevice": {
+    "message": "端末内 AI（標準）"
+  },
+  "classifierLlm": {
+    "message": "ローカル LLM サーバー（Ollama、LM Studio など）"
+  },
+  "classifierDomain": {
+    "message": "ドメイン単位"
+  },
+  "onDeviceNote": {
+    "message": "初回に約 175 MB を huggingface.co からダウンロードします。タブの情報は送信しません。"
+  },
+  "modelMissing": {
+    "message": "モデル: 未ダウンロード（次回の実行時にダウンロードします）"
+  },
+  "modelDownloading": {
+    "message": "モデル: ダウンロード中… $PERCENT$%",
+    "placeholders": {
+      "percent": {
+        "content": "$1"
+      }
+    }
+  },
+  "modelReady": {
+    "message": "モデル: 準備完了"
+  },
+  "modelError": {
+    "message": "モデル: ダウンロード失敗（$REASON$）",
+    "placeholders": {
+      "reason": {
+        "content": "$1"
+      }
+    }
+  },
+  "downloadModels": {
+    "message": "今すぐダウンロード"
+  },
+  "deleteModels": {
+    "message": "ダウンロード済みモデルを削除"
+  },
+  "classifyStatusHeading": {
+    "message": "分類"
+  },
+  "classifyByDomainStatus": {
+    "message": "ドメイン単位で分類"
+  },
+  "noteModelNotReady": {
+    "message": "モデル準備中のためドメイン単位で分類"
+  },
+  "noteModelDownloadFailed": {
+    "message": "モデルを取得できないためドメイン単位で分類"
+  },
+  "noteInferenceFailed": {
+    "message": "端末内 AI が失敗したためドメイン単位で分類"
   }
 }

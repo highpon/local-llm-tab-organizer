@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import { NO_GROUP } from '../../core/types';
-import type { CloseEntry, DedupePlan, GroupAdd, GroupingPlan, Snapshot, TabInfo } from '../../core/types';
+import type { CloseEntry, DedupePlan, ExistingGroup, GroupAdd, GroupingPlan, Snapshot, TabInfo } from '../../core/types';
 import { applyPending, runCycle, type RunDeps } from '../../services/orchestrator';
 import { discardPending, loadPending } from '../../services/pending';
 import { listRuns } from '../../services/runHistory';
@@ -78,17 +78,82 @@ describe('runCycle', () => {
     expect(deps.snapshot).toHaveBeenCalledTimes(2);
   });
 
-  it('passes grouping candidates and existing group names to classify', async () => {
+  it('passes grouping candidates and existing groups to classify', async () => {
     const deps = makeDeps({
       snapshot: vi.fn(async () => snap({
         tabs: [tab(1, 'https://a.com/'), tab(2, 'https://b.com/', { pinned: true }), tab(3, 'https://c.com/', { groupId: 50 })],
-        groups: [{ id: 50, windowId: 1, title: 'Existing' }, { id: 51, windowId: 2, title: 'Existing' }, { id: 52, windowId: 2, title: '' }],
+        groups: [{ id: 50, windowId: 1, title: 'Existing' }],
       })),
     });
     await runCycle('manual', deps);
-    const [tabs, names] = deps.classify.mock.calls[0]!;
+    const [tabs, existing, settings] = deps.classify.mock.calls[0]!;
     expect(tabs.map((t: TabInfo) => t.id)).toEqual([1]);
-    expect(names).toEqual(['Existing']);
+    expect(existing.map((g: ExistingGroup) => ({ title: g.title, ids: g.tabs.map((t) => t.id) })))
+      .toEqual([{ title: 'Existing', ids: [3] }]);
+    expect(settings.classifier).toBe('onDevice');
+  });
+
+  it('passes existing groups with all their tabs', async () => {
+    const deps = makeDeps({
+      snapshot: vi.fn(async () => snap({
+        tabs: [tab(1, 'https://a.com/'), ...[5, 6, 7, 8].map((id) => tab(id, `https://g${id}.com/`, { groupId: 50 }))],
+      })),
+    });
+    await runCycle('manual', deps);
+    const existing: ExistingGroup[] = deps.classify.mock.calls[0]![1];
+    expect(existing).toHaveLength(1);
+    expect(existing[0]!.tabs.map((t) => t.id)).toEqual([5, 6, 7, 8]);
+  });
+
+  it('unnamed groups are not join targets', async () => {
+    const deps = makeDeps({
+      snapshot: vi.fn(async () => snap({
+        tabs: [tab(1, 'https://a.com/'), tab(3, 'https://c.com/', { groupId: 52 })],
+        groups: [{ id: 52, windowId: 1, title: '' }],
+      })),
+    });
+    await runCycle('manual', deps);
+    expect(deps.classify.mock.calls[0]![1]).toEqual([]);
+  });
+
+  it('same-titled groups in two windows are merged into one entry', async () => {
+    const deps = makeDeps({
+      snapshot: vi.fn(async () => snap({
+        tabs: [tab(1, 'https://a.com/'), tab(3, 'https://c.com/', { groupId: 50 }),
+          tab(4, 'https://d.com/', { groupId: 51, windowId: 2 })],
+        groups: [{ id: 50, windowId: 1, title: 'Existing' }, { id: 51, windowId: 2, title: 'Existing' }],
+      })),
+    });
+    await runCycle('manual', deps);
+    const existing: ExistingGroup[] = deps.classify.mock.calls[0]![1];
+    expect(existing).toHaveLength(1);
+    expect(existing[0]!.tabs.map((t) => t.id)).toEqual([3, 4]);
+  });
+
+  it('records the classify error', async () => {
+    const classify = vi.fn(async (tabs: TabInfo[]) => ({
+      assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const, error: 'modelNotReady' as const,
+    }));
+    const rec = await runCycle('manual', makeDeps({ classify }));
+    expect(rec.classifyError).toBe('modelNotReady');
+  });
+
+  it('LLM status only for the llm classifier', async () => {
+    await browser.storage.local.set({ llmStatus: 'ok' });
+    const classify = vi.fn(async (tabs: TabInfo[]) => ({
+      assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const, error: 'inferenceFailed' as const,
+    }));
+    const deps = makeDeps({ classify });
+    await runCycle('manual', deps);
+    expect((await browser.storage.local.get('llmStatus')).llmStatus).toBeUndefined();
+    expect(deps.notify.mock.calls.filter((c: unknown[]) => c[0] === 'tab-tidy-llm')).toHaveLength(0);
+  });
+
+  it('classifies by domain when the classifier is domain', async () => {
+    await setSettings({ classifier: 'domain', grouping: { mode: 'auto' } });
+    const { classify: _unused, ...rest } = makeDeps();
+    const rec = await runCycle('manual', rest);
+    expect(rec.method).toBe('domain');
   });
 
   it('grouping auto applies and records grouped in undo', async () => {
@@ -237,7 +302,7 @@ describe('runCycle', () => {
   });
 
   it('notifies about a 403 only on the transition into the error state', async () => {
-    await setSettings({ llm: { ...DEFAULT_SETTINGS.llm, enabled: true } });
+    await setSettings({ classifier: 'llm' });
     await browser.storage.local.set({ llmStatus: 'ok' });
     const classify = vi.fn(async (tabs: TabInfo[]) => ({
       assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const, error: 'forbidden' as const,
@@ -253,7 +318,7 @@ describe('runCycle', () => {
   });
 
   it('uses the generic message for other LLM errors and resets status on success', async () => {
-    await setSettings({ llm: { ...DEFAULT_SETTINGS.llm, enabled: true } });
+    await setSettings({ classifier: 'llm' });
     const err = vi.fn(async (tabs: TabInfo[]) => ({
       assignments: tabs.map((t) => ({ tabId: t.id, group: 'G' })), method: 'domain' as const, error: 'timeout' as const,
     }));

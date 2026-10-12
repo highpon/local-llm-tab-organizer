@@ -1,4 +1,4 @@
-import type { ClassifyMethod } from '../core/types';
+import type { ClassifyErrorKind, ClassifyMethod } from '../core/types';
 
 export type Trigger = 'alarm' | 'idle' | 'manual';
 export interface RunRecord {
@@ -7,6 +7,7 @@ export interface RunRecord {
   closed: number;
   grouped: number;
   method: ClassifyMethod | null;
+  classifyError?: ClassifyErrorKind; // why classification fell back, e.g. the model was not ready
   error?: string;
   skipped: boolean; // true when the run was skipped because another run held the lock
 }

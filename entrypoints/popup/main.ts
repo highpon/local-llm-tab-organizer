@@ -1,8 +1,10 @@
 import type { DedupePlan, GroupingPlan } from '../../core/types';
 import { formatTime, localizeDocument, t } from '../../services/i18n';
+import { loadModelStatus, MODEL_STATUS_KEY, modelStatusText } from '../../services/modelManager';
 import { loadPending } from '../../services/pending';
 import { listRuns, type RunRecord } from '../../services/runHistory';
 import type { Message } from '../../services/scheduler';
+import { loadSettings } from '../../services/settings';
 import { loadUndo } from '../../services/undoLog';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -114,11 +116,13 @@ const llmText = (status: string): string => ({
 } as Record<string, string>)[status] ?? status;
 
 async function render(): Promise<void> {
-  const [pending, undo, runs, status] = await Promise.all([
+  const [pending, undo, runs, status, settings, model] = await Promise.all([
     loadPending(),
     loadUndo(),
     listRuns(),
     browser.storage.local.get('llmStatus'),
+    loadSettings(),
+    loadModelStatus(),
   ]);
 
   $<HTMLButtonElement>('undo').disabled = undo === null;
@@ -136,25 +140,37 @@ async function render(): Promise<void> {
 
   $('last').textContent = runs[0] ? describeRun(runs[0]) : t('neverRun');
 
-  const llm = $('llm');
-  llm.replaceChildren();
-  const st = status.llmStatus as string | undefined;
-  if (st === undefined) {
-    llm.textContent = t('llmUnused');
-  } else {
-    llm.append(el('span', llmText(st)));
-    if (st !== 'ok') {
-      llm.append(' ');
-      const link = el('a', t('openSettings'));
-      link.href = '#';
-      link.addEventListener('click', (ev) => {
-        ev.preventDefault();
-        void browser.runtime.openOptionsPage();
-      });
-      llm.append(link);
+  const box = $('classify');
+  box.replaceChildren();
+  const settingsLink = (): HTMLAnchorElement => {
+    const link = el('a', t('openSettings'));
+    link.href = '#';
+    link.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      void browser.runtime.openOptionsPage();
+    });
+    return link;
+  };
+  if (settings.classifier === 'onDevice') {
+    box.append(el('span', modelStatusText(model)));
+    if (model.state === 'error') box.append(' ', settingsLink());
+  } else if (settings.classifier === 'llm') {
+    const st = status.llmStatus as string | undefined;
+    if (st === undefined) {
+      box.textContent = t('llmUnused');
+    } else {
+      box.append(el('span', llmText(st)));
+      if (st !== 'ok') box.append(' ', settingsLink());
     }
+  } else {
+    box.textContent = t('classifyByDomainStatus');
   }
 }
+
+// Download progress updates while the popup is open.
+browser.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes[MODEL_STATUS_KEY]) void render();
+});
 
 $('run').addEventListener('click', async () => {
   const btn = $<HTMLButtonElement>('run');

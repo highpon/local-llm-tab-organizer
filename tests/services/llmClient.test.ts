@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { chatCompletion, listModels, LlmError } from '../../services/llmClient';
 
-const cfg = { enabled: true, baseUrl: 'http://localhost:11434/v1', model: 'm1', timeoutSeconds: 5 };
+const cfg = { baseUrl: 'http://localhost:11434/v1', model: 'm1', timeoutSeconds: 5 };
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 const msgs = [{ role: 'user' as const, content: 'hello' }];

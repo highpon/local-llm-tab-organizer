@@ -6,7 +6,7 @@ import type { TabInfo } from '../../core/types';
 
 beforeEach(() => { fakeBrowser.reset(); });
 
-const cfg = { enabled: true, baseUrl: 'http://x/v1', model: 'm', timeoutSeconds: 5 };
+const cfg = { baseUrl: 'http://x/v1', model: 'm', timeoutSeconds: 5 };
 const tab = (id: number, url = `https://site${id}.example.com/p`): TabInfo => ({
   id, windowId: 7, url, title: `Title ${id}`, pinned: false, active: false,
   audible: false, lastAccessed: 1234567890123, groupId: -1, cookieStoreId: 'firefox-default',
@@ -46,13 +46,6 @@ describe('parseAssignments', () => {
 });
 
 describe('classifyTabs', () => {
-  it('skips the LLM when disabled', async () => {
-    const chat = vi.fn();
-    const r = await classifyTabs([tab(1)], [], { ...cfg, enabled: false }, chat);
-    expect(chat).not.toHaveBeenCalled();
-    expect(r.method).toBe('domain');
-    expect(r.assignments).toHaveLength(1);
-  });
   it('returns llm when every tab is assigned', async () => {
     const chat = vi.fn(async () => reply([1, 'A'], [2, 'B']));
     const r = await classifyTabs([tab(1), tab(2)], [], cfg, chat);
