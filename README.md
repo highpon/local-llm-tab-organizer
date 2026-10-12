@@ -78,7 +78,10 @@ env OLLAMA_ORIGINS='moz-extension://*' ollama serve
 For Chrome, use `chrome-extension://*` instead. To allow both browsers, combine the origins:
 
 ```sh
+# Chrome only
 OLLAMA_ORIGINS='chrome-extension://*' ollama serve
+
+# Firefox and Chrome
 OLLAMA_ORIGINS='moz-extension://*,chrome-extension://*' ollama serve
 ```
 
@@ -121,7 +124,7 @@ This writes the submission zips to `.output/`.
 npm run zip:chrome
 ```
 
-Upload the zip written to `.output/` (the file named `*-chrome.zip`, not the sources zip). Text for the store listing's privacy tab:
+Upload `.output/local-llm-tab-organizer-<version>-chrome.zip` (the only file `zip:chrome` writes). Text for the store listing's privacy tab:
 
 **Permission purposes**
 

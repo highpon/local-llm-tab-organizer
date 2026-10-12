@@ -4,10 +4,12 @@ Checks to run in a real Firefox and in Chrome (section J is Chrome only). A pers
 
 The extension's UI follows the browser language (English or Japanese). UI labels are quoted in English, with the Japanese label in parentheses.
 
+Firefox-specific wording in older items (e.g. `about:addons`, "Firefox's UI language") should be read as the equivalent in the browser under test (`chrome://extensions`, Chrome's UI language).
+
 ## Setup
 
 1. Install dependencies: `npm install`
-2. Start Firefox in development mode: `npx wxt -b firefox` (the extension is loaded as a temporary add-on)
+2. Firefox: start in development mode: `npx wxt -b firefox` (the extension is loaded as a temporary add-on)
 3. Open the settings page from the "Settings" ("設定") button in the popup. To shorten waits for the schedule checks, set the run interval (minutes) to 1 and the idle threshold (seconds) to 15, then save.
 4. Extra setup for the LLM items (section E):
    - Install Ollama.
