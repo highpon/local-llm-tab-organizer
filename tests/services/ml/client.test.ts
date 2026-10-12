@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createMlClient } from '../../../services/ml/client';
+import { createMlClient, type WorkerLike } from '../../../services/ml/client';
 import type { MlRequest, MlResponse } from '../../../services/ml/protocol';
 
 class FakeWorker {
@@ -13,7 +13,7 @@ class FakeWorker {
 
 function setup() {
   const w = new FakeWorker();
-  const client = createMlClient(() => w as unknown as Worker);
+  const client = createMlClient(() => w as unknown as WorkerLike);
   return { w, client };
 }
 
@@ -82,7 +82,7 @@ describe('createMlClient', () => {
   });
 
   it('spawns the worker lazily, once', () => {
-    const spawn = vi.fn(() => new FakeWorker() as unknown as Worker);
+    const spawn = vi.fn(() => new FakeWorker() as unknown as WorkerLike);
     const client = createMlClient(spawn);
     expect(spawn).not.toHaveBeenCalled();
     void client.embed(['a']).catch(() => {});

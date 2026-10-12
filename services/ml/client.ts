@@ -10,15 +10,22 @@ export interface MlClient {
   terminate(): void;
 }
 
+export interface WorkerLike {
+  postMessage(msg: MlRequest): void;
+  onmessage: ((ev: { data: MlResponse }) => void) | null;
+  onerror: ((ev: { message: string }) => void) | null;
+  terminate(): void;
+}
+
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void };
 
-function spawnWorker(): Worker {
-  return new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });
+function spawnWorker(): WorkerLike {
+  return new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike;
 }
 
 /** Promise wrapper around the ML worker. The worker is spawned on the first request. */
-export function createMlClient(spawn: () => Worker = spawnWorker): MlClient {
-  let worker: Worker | null = null;
+export function createMlClient(spawn: () => WorkerLike = spawnWorker): MlClient {
+  let worker: WorkerLike | null = null;
   let nextId = 1;
   let onProgress: ((p: number) => void) | undefined;
   const pending = new Map<number, Pending>();
@@ -28,10 +35,10 @@ export function createMlClient(spawn: () => Worker = spawnWorker): MlClient {
     pending.clear();
   };
 
-  const ensureWorker = (): Worker => {
+  const ensureWorker = (): WorkerLike => {
     if (worker) return worker;
     const w = spawn();
-    w.onmessage = (ev: MessageEvent<MlResponse>) => {
+    w.onmessage = (ev) => {
       const msg = ev.data;
       if ('type' in msg) {
         onProgress?.(msg.progress);
@@ -43,7 +50,7 @@ export function createMlClient(spawn: () => Worker = spawnWorker): MlClient {
       if (msg.ok) p.resolve(msg.result);
       else p.reject(new Error(msg.error));
     };
-    w.onerror = (ev: ErrorEvent) => failAll(new Error(ev.message || 'ML worker error'));
+    w.onerror = (ev) => failAll(new Error(ev.message || 'ML worker error'));
     worker = w;
     return w;
   };
