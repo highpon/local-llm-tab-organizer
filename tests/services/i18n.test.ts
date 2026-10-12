@@ -69,3 +69,18 @@ describe('t', () => {
     expect(t('noSuchKey')).toBe('noSuchKey');
   });
 });
+
+describe('extensionOriginPattern', () => {
+  it('extensionOriginPattern follows the running browser', async () => {
+    const { extensionOriginPattern } = await import('../../services/i18n');
+    expect(extensionOriginPattern()).toBe('chrome-extension://*'); // fakeBrowser serves chrome-extension:// URLs
+  });
+
+  it.each(['ollamaGuide', 'notifyForbidden'])('%s includes the origin', async (key) => {
+    const { extensionOriginPattern } = await import('../../services/i18n');
+    const origin = extensionOriginPattern();
+    expect(t(key, origin)).toContain(`OLLAMA_ORIGINS=${origin}`);
+    expect(en[key as keyof typeof en]!.message).not.toContain('moz-extension');
+    expect(ja[key as keyof typeof ja]!.message).not.toContain('moz-extension');
+  });
+});

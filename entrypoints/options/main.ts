@@ -1,5 +1,5 @@
 import type { Mode } from '../../core/types';
-import { formatTime, localizeDocument, t } from '../../services/i18n';
+import { extensionOriginPattern, formatTime, localizeDocument, t } from '../../services/i18n';
 import { LlmError, listModels } from '../../services/llmClient';
 import { loadModelStatus, MODEL_STATUS_KEY, modelStatusText, type ModelStatus } from '../../services/modelManager';
 import { listRuns } from '../../services/runHistory';
@@ -17,7 +17,7 @@ const methodLabels = () => ({
 const errorText = (kind: string): string | undefined => ({
   unreachable: t('errUnreachable'),
   timeout: t('errTimeout'),
-  forbidden: t('ollamaGuide'),
+  forbidden: t('ollamaGuide', extensionOriginPattern()),
   http: t('errHttp'),
   badResponse: t('errBadResponse'),
 } as Record<string, string>)[kind];

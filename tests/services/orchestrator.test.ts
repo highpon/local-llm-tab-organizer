@@ -311,7 +311,7 @@ describe('runCycle', () => {
     await runCycle('manual', deps);
     const llmCalls = () => deps.notify.mock.calls.filter((c: unknown[]) => c[0] === 'local-llm-tab-organizer-llm');
     expect(llmCalls()).toHaveLength(1);
-    expect(llmCalls()[0]![1]).toContain('OLLAMA_ORIGINS=moz-extension://*');
+    expect(llmCalls()[0]![1]).toContain('OLLAMA_ORIGINS=chrome-extension://*');
     expect((await browser.storage.local.get('llmStatus')).llmStatus).toBe('forbidden');
     await runCycle('manual', deps);
     expect(llmCalls()).toHaveLength(1);

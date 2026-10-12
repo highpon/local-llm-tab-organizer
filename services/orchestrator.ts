@@ -2,7 +2,7 @@ import { classifyByDomain } from '../core/classifyByDomain';
 import { planDedupe } from '../core/planDedupe';
 import { groupingCandidates, planGrouping } from '../core/planGrouping';
 import type { ClassifyErrorKind, DedupePlan, ExistingGroup, GroupInfo, GroupingPlan, Snapshot, TabInfo } from '../core/types';
-import { t } from './i18n';
+import { extensionOriginPattern, t } from './i18n';
 import { whileKeepingAlive } from './keepAlive';
 import { classifyTabs, type ClassifyResult } from './llmClassifier';
 import { classifyOnDevice } from './onDeviceClassifier';
@@ -77,7 +77,7 @@ async function updateLlmStatus(error: ClassifyErrorKind | undefined, d: RunDeps)
   const next = error ?? 'ok';
   await browser.storage.local.set({ [LLM_STATUS_KEY]: next });
   if (next !== 'ok' && (prev === undefined || prev === 'ok')) {
-    await d.notify('local-llm-tab-organizer-llm', next === 'forbidden' ? t('notifyForbidden') : t('notifyLlmFallback'));
+    await d.notify('local-llm-tab-organizer-llm', next === 'forbidden' ? t('notifyForbidden', extensionOriginPattern()) : t('notifyLlmFallback'));
   }
 }
 

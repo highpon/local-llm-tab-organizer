@@ -14,6 +14,13 @@ function fromFallback(key: string, subs: string[]): string {
   });
 }
 
+/** Returns the origin pattern for this browser's extension protocol, e.g. 'chrome-extension://*' */
+export function extensionOriginPattern(): string {
+  const url = browser.runtime.getURL('/');
+  const protocol = new URL(url).protocol;
+  return `${protocol}//*`;
+}
+
 /** Localized message for `key`. Falls back to English where browser.i18n is unavailable (e.g. tests). */
 export function t(key: string, ...subs: (string | number)[]): string {
   const s = subs.map(String);

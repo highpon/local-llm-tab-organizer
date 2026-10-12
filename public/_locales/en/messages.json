@@ -215,7 +215,12 @@
     "message": "Mixed"
   },
   "ollamaGuide": {
-    "message": "Ollama refused the connection from the extension. Set the environment variable OLLAMA_ORIGINS=moz-extension://* and restart Ollama."
+    "message": "Ollama refused the connection from the extension. Set the environment variable OLLAMA_ORIGINS=$ORIGIN$ and restart Ollama.",
+    "placeholders": {
+      "origin": {
+        "content": "$1"
+      }
+    }
   },
   "errUnreachable": {
     "message": "Cannot connect to the server. Check the URL and that Ollama is running."
@@ -279,7 +284,12 @@
     "message": "Skipped"
   },
   "notifyForbidden": {
-    "message": "Cannot reach the LLM (403). Set OLLAMA_ORIGINS=moz-extension://* and restart Ollama."
+    "message": "Cannot reach the LLM (403). Set OLLAMA_ORIGINS=$ORIGIN$ and restart Ollama.",
+    "placeholders": {
+      "origin": {
+        "content": "$1"
+      }
+    }
   },
   "notifyModelFailed": {
     "message": "Could not download the on-device AI models. Tabs are grouped by domain until it succeeds."

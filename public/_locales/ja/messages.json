@@ -215,7 +215,12 @@
     "message": "混合"
   },
   "ollamaGuide": {
-    "message": "Ollama が拡張機能からの接続を拒否しました。環境変数 OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください。"
+    "message": "Ollama が拡張機能からの接続を拒否しました。環境変数 OLLAMA_ORIGINS=$ORIGIN$ を設定して Ollama を再起動してください。",
+    "placeholders": {
+      "origin": {
+        "content": "$1"
+      }
+    }
   },
   "errUnreachable": {
     "message": "サーバーに接続できません。URL と Ollama の起動状態を確認してください。"
@@ -279,7 +284,12 @@
     "message": "スキップ"
   },
   "notifyForbidden": {
-    "message": "LLM に接続できません（403）。OLLAMA_ORIGINS=moz-extension://* を設定して Ollama を再起動してください"
+    "message": "LLM に接続できません（403）。OLLAMA_ORIGINS=$ORIGIN$ を設定して Ollama を再起動してください",
+    "placeholders": {
+      "origin": {
+        "content": "$1"
+      }
+    }
   },
   "notifyModelFailed": {
     "message": "端末内 AI のモデルをダウンロードできませんでした。成功するまではドメイン単位で分類します"
