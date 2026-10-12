@@ -62,7 +62,8 @@ WXT must not include `entrypoints/offscreen/` in the Firefox build. It is limite
   - Chrome: adds the `offscreen` permission and `minimum_chrome_version: '116'`; uses the PNG icons; no `browser_specific_settings`.
 - `entrypoints/background.ts`: on Chrome, at every service worker start, calls `closeIdleOffscreen()` (see §4) next to `resetInterruptedDownload()`.
 - `services/modelManager.ts`, `services/orchestrator.ts`: notification `iconUrl` uses `/icon-128.png`.
-- `public/_locales/{en,ja}/messages.json`: the three messages that contain `moz-extension://*` (`ollamaGuide`, the 403 run error, and the Japanese connection-refused message) take an `$ORIGIN$` placeholder. Callers pass the origin pattern for the running browser from one helper, `extensionOriginPattern()` in `services/i18n.ts`.
+- `public/_locales/{en,ja}/messages.json`: the two messages that contain `moz-extension://*` (`ollamaGuide` and `notifyForbidden`) take an `$ORIGIN$` placeholder. Callers pass the origin pattern for the running browser from one helper, `extensionOriginPattern()` in `services/i18n.ts`, derived at run time from `browser.runtime.getURL('/')` (`moz-extension://*` / `chrome-extension://*`).
+- `services/undoLog.ts`: when recreating a closed tab, `cookieStoreId` is passed to `tabs.create` only in Firefox. Chrome rejects the unknown property, which would make undo fail for every tab whose session entry expired; `windowId` already places the tab in the right (regular or incognito) window.
 - `package.json`: adds `dev:chrome`, `build:chrome`, `zip:chrome`.
 - `README.md`: describes both browsers (setup, loading unpacked in Chrome, `OLLAMA_ORIGINS=chrome-extension://*`) and adds a "Submitting to the Chrome Web Store" section (§6).
 
@@ -81,6 +82,8 @@ On the first message a client sends (lazily, like the Worker today):
 3. Only one offscreen document may exist per extension. A module-level promise for the creation in progress is shared by concurrent callers, so `createDocument` runs at most once at a time.
 
 Messages posted before the document and Port are ready are queued in the transport and sent in order once connected.
+
+The offscreen page may not have registered its `onConnect` listener yet when `createDocument` resolves. The relay therefore answers every new Port with `{ type: 'relayReady' }`, and the transport sends queued messages only after that. A Port that disconnects before `relayReady` is retried, up to 5 connects 200 ms apart; after that the transport raises `onerror`.
 
 ### Clients, Ports and Workers
 
@@ -113,7 +116,7 @@ Every Chrome-specific failure becomes an ordinary `MlClient` failure (a rejected
 
 A failure to create the offscreen document counts as one model load failure, so three in a row delete and re-download the models although the files may be fine. This matches the current rule for a Worker that will not start; telling the cases apart would need a failure kind in `MlClient`, which is not worth it now.
 
-`workerError` is a relay-only message type defined in `offscreenTransport.ts` / `offscreenRelay.ts`; `MlResponse` in `protocol.ts` is unchanged.
+`relayReady` and `workerError` are relay-only message types defined in `offscreenTransport.ts` / `offscreenRelay.ts`; `MlResponse` in `protocol.ts` is unchanged.
 
 ## 6. Chrome Web Store submission (documented, not automated)
 
@@ -132,17 +135,19 @@ The README section covers:
 - `tests/services/ml/offscreenTransport.test.ts` (new): `chrome.offscreen` and `runtime.getContexts` / `connect` are injected fakes (WXT's `fakeBrowser` has no offscreen support). Cases:
   - an existing document is reused, not created again
   - concurrent first messages call `createDocument` once
-  - messages posted before connection are delivered in order
+  - messages posted before connection are delivered in order, and only after `relayReady`
+  - a Port that disconnects before `relayReady` is retried; after 5 failed connects `onerror` fires
   - closing the last Port calls `closeDocument`; closing one of two does not
   - an unexpected disconnect raises `onerror`
   - `workerError` is turned into `onerror`
   - `closeIdleOffscreen()` closes an existing document when no Port is open
 - `tests/services/ml/offscreenRelay.test.ts` (new), with an injected Worker factory:
-  - one Worker per Port
+  - every new Port gets `relayReady`; one Worker per Port
   - messages relayed both ways unchanged
   - disconnect terminates the Worker
   - a Worker error is sent back as `workerError`
 - `tests/services/tabsAdapter.test.ts`: without `cookieStoreId`, `incognito: true` and `false` give different keys.
+- `tests/services/undoLog.test.ts`: the Chrome create properties carry no `cookieStoreId`; the Firefox ones keep it.
 - `tests/services/i18n.test.ts`: messages with `$ORIGIN$` include the origin pattern for the browser.
 
 ### Build checks
