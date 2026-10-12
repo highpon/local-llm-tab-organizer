@@ -48,6 +48,7 @@ export function createOffscreenHost(deps: OffscreenDeps = browserDeps()): Offscr
   let closing: Promise<void> | null = null;
 
   const close = () => {
+    if (closing && !creating) return; // Already closing and nothing can reopen it meanwhile.
     // Waits for an in-flight creation so the close does not race it.
     const p: Promise<void> = (creating ?? Promise.resolve())
       .catch(() => {})
@@ -59,8 +60,10 @@ export function createOffscreenHost(deps: OffscreenDeps = browserDeps()): Offscr
     closing = p;
   };
 
-  const ensureDocument = async (): Promise<void> => {
+  /** `wanted` is re-checked after a pending close: a caller terminated meanwhile must not create a document. */
+  const ensureDocument = async (wanted: () => boolean): Promise<void> => {
     while (closing) await closing;
+    if (!wanted()) return;
     if (!creating) {
       const p: Promise<void> = (async () => {
         if (!(await deps.hasDocument())) await deps.createDocument();
@@ -79,11 +82,11 @@ export function createOffscreenHost(deps: OffscreenDeps = browserDeps()): Offscr
     let failure = CLOSED;
     const queue: MlRequest[] = [];
 
-    const release = (closeIfLast: boolean) => {
+    const release = () => {
       if (!counted) return;
       counted = false;
       openPorts--;
-      if (closeIfLast && openPorts === 0) close();
+      if (openPorts === 0) close();
     };
 
     const fail = (message: string) => {
@@ -91,13 +94,13 @@ export function createOffscreenHost(deps: OffscreenDeps = browserDeps()): Offscr
       failure = message;
       port = null;
       queue.length = 0;
-      release(false);
+      release();
       worker.onerror?.({ message });
     };
 
     const attempt = async (n: number): Promise<void> => {
       try {
-        await ensureDocument();
+        await ensureDocument(() => state === 'connecting');
       } catch (e) {
         if (state === 'connecting') fail(errorMessage(e));
         return;
@@ -160,7 +163,7 @@ export function createOffscreenHost(deps: OffscreenDeps = browserDeps()): Offscr
         const p = port;
         port = null;
         p?.disconnect();
-        release(true);
+        release();
       },
     };
     return worker;

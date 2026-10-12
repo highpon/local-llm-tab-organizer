@@ -212,15 +212,75 @@ describe('createOffscreenHost', () => {
     expect(deps.closeDocument).toHaveBeenCalledTimes(1);
   });
 
-  it('a worker that gave up releases its count', async () => {
+  it('a worker that gave up releases its count and closes the document', async () => {
     const { deps, host } = setup({ script: ['fail', 'fail', 'fail', 'fail', 'fail'] });
     const a = spawnWatched(host);
     a.w.postMessage(req(1));
     await flush();
     expect(a.onerror).toHaveBeenCalledTimes(1);
-    deps.hasDocument.mockResolvedValue(true);
-    await host.closeIdle();
     expect(deps.closeDocument).toHaveBeenCalledTimes(1);
+    a.w.terminate();
+    await flush();
+    expect(deps.closeDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('an unexpected disconnect closes the last document', async () => {
+    const { deps, host, ports } = setup();
+    const { w } = spawnWatched(host);
+    w.postMessage(req(1));
+    await flush();
+    ports[0]!.disconnectFromOtherSide();
+    await flush();
+    expect(deps.closeDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('terminate while waiting for a pending close creates no lasting document', async () => {
+    const { deps, host } = setup();
+    const close = deferred();
+    deps.closeDocument.mockImplementationOnce(() => close.promise);
+    const a = spawnWatched(host);
+    a.w.postMessage(req(1));
+    await flush();
+    a.w.terminate();
+    await flush();
+    deps.createDocument.mockClear();
+    const b = spawnWatched(host);
+    b.w.postMessage(req(2));
+    await flush();
+    b.w.terminate();
+    close.resolve();
+    await flush();
+    expect(deps.createDocument).not.toHaveBeenCalled();
+    expect(deps.connect).toHaveBeenCalledTimes(1);
+  });
+
+  it('a second close while one is pending does not call closeDocument again', async () => {
+    const { deps, host } = setup({ hasDocument: true });
+    const close = deferred();
+    deps.closeDocument.mockImplementationOnce(() => close.promise);
+    const a = spawnWatched(host);
+    a.w.postMessage(req(1));
+    await flush();
+    a.w.terminate();
+    await flush();
+    const b = spawnWatched(host);
+    b.w.postMessage(req(2));
+    b.w.terminate();
+    close.resolve();
+    await flush();
+    expect(deps.closeDocument).toHaveBeenCalledTimes(1);
+  });
+
+  it('postMessage after giving up rejects via onerror', async () => {
+    const { host } = setup({ script: ['fail', 'fail', 'fail', 'fail', 'fail'] });
+    const { w, onerror } = spawnWatched(host);
+    w.postMessage(req(1));
+    await flush();
+    expect(onerror).toHaveBeenCalledTimes(1);
+    w.postMessage(req(2));
+    await flush();
+    expect(onerror).toHaveBeenCalledTimes(2);
+    expect(onerror).toHaveBeenLastCalledWith({ message: 'ML offscreen document closed' });
   });
 
   it('closeIdle closes a leftover document', async () => {
