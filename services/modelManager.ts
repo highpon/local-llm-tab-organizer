@@ -29,7 +29,7 @@ function defaultDeps(): ModelDeps {
     client: () => createMlClient(),
     notify: async (message) => {
       await browser.notifications.create('local-llm-tab-organizer-model', {
-        type: 'basic', title: 'Local LLM Tab Organizer', message, iconUrl: browser.runtime.getURL('/icon.svg'),
+        type: 'basic', title: 'Local LLM Tab Organizer', message, iconUrl: browser.runtime.getURL('/icon-128.png'),
       });
     },
     now: Date.now,

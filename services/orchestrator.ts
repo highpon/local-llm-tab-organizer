@@ -57,7 +57,7 @@ function defaultDeps(): RunDeps {
     classify,
     notify: async (id, message) => {
       await browser.notifications.create(id, {
-        type: 'basic', title: 'Local LLM Tab Organizer', message, iconUrl: browser.runtime.getURL('/icon.svg'),
+        type: 'basic', title: 'Local LLM Tab Organizer', message, iconUrl: browser.runtime.getURL('/icon-128.png'),
       });
     },
     now: Date.now,

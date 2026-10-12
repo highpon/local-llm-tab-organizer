@@ -25,24 +25,34 @@ export default defineConfig({
       for (const name of ORT_FILES) files.push({ absoluteSrc: join(dir, name), relativeDest: `ort/${name}` });
     },
   },
-  manifest: {
-    content_security_policy: {
-      extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
-    },
-    name: '__MSG_extName__',
-    description: '__MSG_extDescription__',
-    default_locale: 'en',
-    permissions: ['tabs', 'tabGroups', 'alarms', 'idle', 'storage', 'notifications', 'sessions'],
-    optional_host_permissions: ['http://*/*', 'https://*/*'],
-    icons: { 48: 'icon.svg', 96: 'icon.svg' },
-    action: { default_icon: { 48: 'icon.svg', 96: 'icon.svg' } },
-    browser_specific_settings: {
-      gecko: {
-        id: 'local-llm-tab-organizer@sshiraki',
-        strict_min_version: '140.0',
-        // Only tab titles/URLs go to the LLM server the user configured; nothing is sent to us.
-        data_collection_permissions: { required: ['none'] },
+  manifest: ({ browser }) => {
+    const isChrome = browser === 'chrome';
+    const pngIcons = { 16: 'icon-16.png', 32: 'icon-32.png', 48: 'icon-48.png', 128: 'icon-128.png' };
+    const svgIcons = { 48: 'icon.svg', 96: 'icon.svg' };
+    const icons = isChrome ? pngIcons : svgIcons;
+    return {
+      content_security_policy: {
+        extension_pages: "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
       },
-    },
+      name: '__MSG_extName__',
+      description: '__MSG_extDescription__',
+      default_locale: 'en',
+      permissions: ['tabs', 'tabGroups', 'alarms', 'idle', 'storage', 'notifications', 'sessions', ...(isChrome ? ['offscreen'] : [])],
+      optional_host_permissions: ['http://*/*', 'https://*/*'],
+      icons,
+      action: { default_icon: icons },
+      ...(isChrome
+        ? { minimum_chrome_version: '116' }
+        : {
+            browser_specific_settings: {
+              gecko: {
+                id: 'local-llm-tab-organizer@sshiraki',
+                strict_min_version: '140.0',
+                // Only tab titles/URLs go to the LLM server the user configured; nothing is sent to us.
+                data_collection_permissions: { required: ['none'] },
+              },
+            },
+          }),
+    };
   },
 });
