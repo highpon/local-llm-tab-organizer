@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
 import type { CloseEntry } from '../../core/types';
-import { applyDedupe } from '../../services/tabsAdapter';
+import { applyDedupe, cookieStoreKey, snapshot } from '../../services/tabsAdapter';
 
 const U = 'https://example.com/a';
 type FakeTab = { id: number; windowId: number; url: string; cookieStoreId?: string };
@@ -20,7 +20,7 @@ function installTabs(list: FakeTab[]) {
 }
 
 const entry = (over: Partial<CloseEntry> = {}): CloseEntry => ({
-  tabId: 1, keepTabId: 2, windowId: 1, url: U, cookieStoreId: 'firefox-default', acrossWindows: false, ...over,
+  tabId: 1, keepTabId: 2, windowId: 1, url: U, cookieStoreId: 'default', acrossWindows: false, ...over,
 });
 
 describe('applyDedupe', () => {
@@ -33,7 +33,7 @@ describe('applyDedupe', () => {
     const remove = installTabs([{ id: 1, windowId: 1, url: U }, { id: 2, windowId: 1, url: U }]);
     const res = await applyDedupe({ closes: [entry()] });
     expect(remove).toHaveBeenCalledWith(1);
-    expect(res.closed).toEqual([{ tabId: 1, windowId: 1, url: U, cookieStoreId: 'firefox-default' }]);
+    expect(res.closed).toEqual([{ tabId: 1, windowId: 1, url: U, cookieStoreId: 'default' }]);
   });
 
   it('skips when the keep tab was closed', async () => {
@@ -77,5 +77,25 @@ describe('applyDedupe', () => {
     const res = await applyDedupe({ closes: [entry({ cookieStoreId: C }), entry({ tabId: 3, keepTabId: 4 })] });
     expect(remove).toHaveBeenCalledTimes(1);
     expect(res.closed[0]!.cookieStoreId).toBe(C);
+  });
+});
+
+describe('cookieStoreKey', () => {
+  it('incognito and regular tabs get different keys', () => {
+    expect(cookieStoreKey({ incognito: true })).toBe('incognito');
+    expect(cookieStoreKey({ incognito: false })).toBe('default');
+    expect(cookieStoreKey({})).toBe('default');
+  });
+  it('keeps the Firefox cookieStoreId when present', () => {
+    expect(cookieStoreKey({ cookieStoreId: 'firefox-container-1', incognito: false })).toBe('firefox-container-1');
+  });
+  it('snapshot keys tabs without cookieStoreId by incognito', async () => {
+    vi.spyOn(browser.tabs, 'query').mockResolvedValue([
+      { id: 1, windowId: 1, url: U, incognito: false },
+      { id: 2, windowId: 2, url: U, incognito: true },
+    ] as never);
+    vi.spyOn(browser.tabGroups, 'query').mockResolvedValue([] as never);
+    const s = await snapshot();
+    expect(s.tabs.map((t) => t.cookieStoreId)).toEqual(['default', 'incognito']);
   });
 });

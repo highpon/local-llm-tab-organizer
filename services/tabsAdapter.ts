@@ -12,7 +12,10 @@ export interface AppliedGrouping {
   skipped: number;
 }
 
-const DEFAULT_COOKIE_STORE = 'firefox-default';
+/** Duplicate-scope key: Firefox container id when present, else 'incognito' | 'default' (Chrome). */
+export function cookieStoreKey(t: { cookieStoreId?: string; incognito?: boolean }): string {
+  return t.cookieStoreId ?? (t.incognito ? 'incognito' : 'default');
+}
 
 async function getTab(tabId: number): Promise<TabInfo | undefined> {
   try {
@@ -34,8 +37,8 @@ function toTabInfo(t: Browser.tabs.Tab): TabInfo | undefined {
     audible: t.audible ?? false,
     lastAccessed: t.lastAccessed ?? 0,
     groupId: t.groupId ?? NO_GROUP,
-    // Firefox-only field, missing from the shared Tab type.
-    cookieStoreId: (t as { cookieStoreId?: string }).cookieStoreId ?? DEFAULT_COOKIE_STORE,
+    // cookieStoreId is Firefox-only, missing from the shared Tab type.
+    cookieStoreId: cookieStoreKey(t as { cookieStoreId?: string; incognito?: boolean }),
   };
 }
 

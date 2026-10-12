@@ -4,7 +4,7 @@ export interface TabInfo {
   id: number; windowId: number; url: string; title: string;
   pinned: boolean; active: boolean; audible: boolean;
   lastAccessed: number; groupId: number; // NO_GROUP = not in a group
-  cookieStoreId: string; // container / private window; 'firefox-default' when unknown
+  cookieStoreId: string; // container / private window; 'incognito' | 'default' in Chrome
 }
 export interface GroupInfo { id: number; windowId: number; title: string }
 export interface Snapshot { tabs: TabInfo[]; groups: GroupInfo[]; groupsSupported: boolean }

@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fakeBrowser } from 'wxt/testing/fake-browser';
-import { clearUndo, loadUndo, saveUndo, undoLast, type UndoPorts } from '../../services/undoLog';
+import { clearUndo, loadUndo, recreateProperties, saveUndo, undoLast, type UndoPorts } from '../../services/undoLog';
 
+const U = 'https://example.com/a';
 const AT = Date.now();
 const DAY = 24 * 60 * 60_000;
 
@@ -208,5 +209,14 @@ describe('undoLog', () => {
     await saveUndo({ at: AT, closed: [], grouped: [1] });
     await saveUndo({ at: AT + 1, closed: [], grouped: [2] });
     expect((await loadUndo())?.at).toBe(AT + 1);
+  });
+});
+
+describe('recreateProperties', () => {
+  it('chrome create properties have no cookieStoreId', () => {
+    expect(recreateProperties(U, 3, 'default', false)).toEqual({ url: U, windowId: 3 });
+  });
+  it('firefox create properties keep cookieStoreId', () => {
+    expect(recreateProperties(U, 3, 'firefox-container-1', true)).toEqual({ url: U, windowId: 3, cookieStoreId: 'firefox-container-1' });
   });
 });

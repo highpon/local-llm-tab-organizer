@@ -33,6 +33,17 @@ export async function clearUndo(): Promise<void> {
   await browser.storage.local.remove(STORAGE_KEY);
 }
 
+/** Chrome rejects cookieStoreId in tabs.create, so only Firefox gets it. */
+export function recreateProperties(
+  url: string,
+  windowId: number,
+  cookieStoreId: string | undefined,
+  firefox: boolean,
+): Browser.tabs.CreateProperties {
+  // cookieStoreId (Firefox containers) is missing from the shared createProperties type.
+  return { url, windowId, ...(firefox && cookieStoreId ? { cookieStoreId } : {}) } as Browser.tabs.CreateProperties;
+}
+
 function defaultPorts(): UndoPorts {
   return {
     async getRecentlyClosed() {
@@ -48,8 +59,7 @@ function defaultPorts(): UndoPorts {
       await browser.sessions.restore(sessionId);
     },
     async create(url, windowId, cookieStoreId) {
-      // cookieStoreId (Firefox containers) is missing from the shared createProperties type.
-      await browser.tabs.create({ url, windowId, ...(cookieStoreId ? { cookieStoreId } : {}) } as Browser.tabs.CreateProperties);
+      await browser.tabs.create(recreateProperties(url, windowId, cookieStoreId, import.meta.env.FIREFOX));
     },
     async ungroup(tabIds) {
       await browser.tabs.ungroup(tabIds as [number, ...number[]]);
