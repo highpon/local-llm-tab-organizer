@@ -1,6 +1,6 @@
 # Manual Integration Test Checklist
 
-Checks to run in a real Firefox. A person fills in every "Result" (all items are currently "Not run").
+Checks to run in a real Firefox and in Chrome (section J is Chrome only). A person fills in every "Result" (all items are currently "Not run").
 
 The extension's UI follows the browser language (English or Japanese). UI labels are quoted in English, with the Japanese label in parentheses.
 
@@ -14,7 +14,9 @@ The extension's UI follows the browser language (English or Japanese). UI labels
    - Start it with extension access allowed: `OLLAMA_ORIGINS=moz-extension://* ollama serve`
    - Pull a small model (e.g. `ollama pull qwen2.5:1.5b`).
    - On the settings page, select "Local LLM server" ("ローカル LLM サーバー") as the classification method, set the base URL to `http://localhost:11434/v1` (Ollama's default), and set the model to the one you pulled.
-5. Before each item, set the relevant modes in the popup and settings page, and reopen the test tabs.
+   - For Chrome, start it with `OLLAMA_ORIGINS=chrome-extension://* ollama serve` (or `'moz-extension://*,chrome-extension://*'` for both).
+5. Chrome setup (instead of step 2 for Chrome checks): run `npm run dev:chrome`, or run `npm run build:chrome` and load `.output/chrome-mv3` unpacked from `chrome://extensions` (Developer mode). Open the settings page the same way.
+6. Before each item, set the relevant modes in the popup and settings page, and reopen the test tabs.
 
 ## A. Merging duplicates and undo
 
@@ -180,6 +182,35 @@ Use a fresh Firefox profile so no models are cached. I1–I3 were checked headle
 ### H1. UI follows the browser language
 - Steps: With Firefox's UI language set to English, open the popup, the settings page, and trigger a notification (e.g. A1 in auto mode). Then set Firefox's language to Japanese (Settings → General → Language), restart Firefox, and repeat.
 - Expected: In English, every label, message, and notification is English. In Japanese, they are all Japanese. Dates in the run history use the matching format. The extension name and description in about:addons follow the language as well.
+- Result: Not run
+
+## J. Chrome
+
+Run these in Chrome 116 or later.
+
+### J1. Load unpacked
+- Steps: Load `.output/chrome-mv3` unpacked from `chrome://extensions`.
+- Expected: No errors are shown for the extension on `chrome://extensions`. The PNG icon is shown in the toolbar and in notifications.
+- Result: Not run
+
+### J2. On-device AI through the offscreen document
+- Steps: Fresh profile, default settings. Run once and wait for the download, then run again. Afterwards open `chrome://extensions` and look under "Inspect views" for the extension.
+- Expected: The first run downloads the models; later runs group by content. After the run, no offscreen document is listed under "Inspect views".
+- Result: Not run
+
+### J3. Service worker stopped during a download
+- Steps: Start the model download from the settings page, then stop the service worker from `chrome://serviceworker-internals`. Let the service worker start again (e.g. open the popup).
+- Expected: The leftover offscreen document is closed at the next start, and the model status returns to "missing".
+- Result: Not run
+
+### J4. Incognito tabs are kept separate
+- Steps: Allow the extension in incognito. Open the same URL in a regular window and in an incognito window, then press "Run now" ("今すぐ実行").
+- Expected: Neither tab is closed.
+- Result: Not run
+
+### J5. Ollama origin
+- Steps: Start Ollama with `OLLAMA_ORIGINS=chrome-extension://*` and press "Test connection" on the settings page. Then restart Ollama without `OLLAMA_ORIGINS` and test again.
+- Expected: The first test succeeds. Without the variable, the 403 guide shows `chrome-extension://*`.
 - Result: Not run
 
 ## Lint results

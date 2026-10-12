@@ -1,13 +1,13 @@
 # Local LLM Tab Organizer
 
-A Firefox extension that tidies your open tabs on a schedule.
+A Firefox and Chrome extension that tidies your open tabs on a schedule.
 
 - **Merge duplicate tabs**: finds tabs showing the same page (by normalized URL) and closes all but the one you viewed most recently.
-- **Sort tabs into tab groups**: puts ungrouped tabs into Firefox's native tab groups, grouped by content with an on-device AI by default. The models (about 175 MB) are downloaded once from huggingface.co; tab titles and URLs never leave your computer. A local LLM server (Ollama, LM Studio, or any OpenAI-compatible API) or plain domain grouping can be chosen instead.
+- **Sort tabs into tab groups**: puts ungrouped tabs into the browser's native tab groups, grouped by content with an on-device AI by default. The models (about 175 MB) are downloaded once from huggingface.co; tab titles and URLs never leave your computer. A local LLM server (Ollama, LM Studio, or any OpenAI-compatible API) or plain domain grouping can be chosen instead.
 - **Runs periodically**: at a fixed interval, and only while you are not using the browser.
 - **Safety**: never closes pinned, active, or audio-playing tabs; re-checks every tab right before acting; the last run can be undone.
 
-Requires Firefox 140 or later.
+Requires Firefox 140 or later, or Chrome 116 or later.
 
 For the full design, see [`docs/superpowers/specs/2026-10-11-tab-organizer-design.md`](docs/superpowers/specs/2026-10-11-tab-organizer-design.md).
 
@@ -22,10 +22,11 @@ npm install
 ### Option A: development mode (recommended)
 
 ```sh
-npm run dev:firefox
+npm run dev:firefox   # Firefox
+npm run dev:chrome    # Chrome
 ```
 
-This launches Firefox with the extension loaded and reloads it automatically when the code changes.
+This launches the browser with the extension loaded and reloads it automatically when the code changes.
 
 ### Option B: load it into your regular Firefox temporarily
 
@@ -34,6 +35,14 @@ This launches Firefox with the extension loaded and reloads it automatically whe
 3. Click "Load Temporary Add-on…" and select `.output/firefox-mv3/manifest.json`.
 
 A temporary add-on is removed when Firefox restarts.
+
+### Option C: load it into Chrome
+
+1. Run `npm run build:chrome`.
+2. Open `chrome://extensions` and turn on "Developer mode".
+3. Click "Load unpacked" and select `.output/chrome-mv3`.
+
+To see incognito tabs, allow the extension in incognito from its details page. In Chrome, duplicate detection treats incognito tabs separately from regular tabs, so the two are never merged with each other.
 
 ### What to check
 
@@ -52,6 +61,7 @@ Nothing to set up. On the first run the extension downloads two models from hugg
 - Tabs are embedded with `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (English and Japanese work) and clustered; similar tabs also join existing groups.
 - Groups of mostly English titles are named by `Mozilla/smart-tab-topic` (the model Firefox's own tab grouping uses); others are named by their most distinctive words, or by domain.
 - Inference runs in a Worker with ONNX Runtime WASM bundled in the extension, so the extension is about 27 MB.
+- In Chrome, the service worker cannot start Workers, so the Worker runs inside an offscreen document. The document is closed after each run or download.
 
 ### Using a local LLM (Ollama)
 
@@ -63,6 +73,13 @@ OLLAMA_ORIGINS='moz-extension://*' ollama serve
 
 # fish
 env OLLAMA_ORIGINS='moz-extension://*' ollama serve
+```
+
+For Chrome, use `chrome-extension://*` instead. To allow both browsers, combine the origins:
+
+```sh
+OLLAMA_ORIGINS='chrome-extension://*' ollama serve
+OLLAMA_ORIGINS='moz-extension://*,chrome-extension://*' ollama serve
 ```
 
 In another terminal, pull a model, for example:
@@ -85,6 +102,8 @@ If `OLLAMA_ORIGINS` is missing, the connection test shows a 403 error with setup
 npm test                                  # unit tests (Vitest)
 npm run compile                           # type check
 npm run build:firefox                     # build for Firefox (.output/firefox-mv3)
+npm run build:chrome                      # build for Chrome (.output/chrome-mv3)
+npm run check:manifests                   # check both built manifests (run after building both)
 npx web-ext lint -s .output/firefox-mv3   # lint before submitting to AMO
 ```
 
@@ -95,6 +114,34 @@ npm run zip:firefox
 ```
 
 This writes the submission zips to `.output/`.
+
+## Submitting to the Chrome Web Store
+
+```sh
+npm run zip:chrome
+```
+
+Upload the zip written to `.output/` (the file named `*-chrome.zip`, not the sources zip). Text for the store listing's privacy tab:
+
+**Permission purposes**
+
+| Permission | Purpose |
+|---|---|
+| `tabs` | Read tab titles and URLs to find duplicates and classify tabs; close duplicates |
+| `tabGroups` | Create, name, and colour tab groups |
+| `alarms` | Run the organizer at the configured interval |
+| `idle` | Run only while the user is not using the browser |
+| `storage` | Save settings, run history, and undo data |
+| `notifications` | Report the result of a run |
+| `sessions` | Restore closed tabs when the user undoes a run |
+| `offscreen` | Run the on-device classifier (a WASM model in a Web Worker) in an offscreen document, because the service worker cannot start Workers |
+| Optional host permissions (`http://*/*`, `https://*/*`) | Requested at runtime only for the LLM server URL the user configures |
+
+**Single purpose**: Tidy open tabs by merging duplicates and sorting tabs into tab groups.
+
+**Data disclosure**: No user data is collected. Tab titles and URLs are sent only to the LLM server the user configures, or nowhere in on-device mode.
+
+**Remote code**: None. ONNX Runtime WASM is bundled in the extension. Only model weight files are downloaded from huggingface.co, and they are data, not code.
 
 ## Project layout
 
