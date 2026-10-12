@@ -1,12 +1,12 @@
 {
   "extName": {
-    "message": "tab-tidy"
+    "message": "Local LLM Tab Organizer"
   },
   "extDescription": {
     "message": "重複タブを自動でまとめ、端末内 AI・ローカル LLM・ドメインのいずれかでタブグループに整理します。"
   },
   "popupTitle": {
-    "message": "Tab Tidy"
+    "message": "Local LLM Tab Organizer"
   },
   "runNow": {
     "message": "今すぐ実行"
@@ -125,7 +125,7 @@
     "message": "元に戻しました"
   },
   "optionsTitle": {
-    "message": "Tab Tidy 設定"
+    "message": "Local LLM Tab Organizer 設定"
   },
   "dedupeLegend": {
     "message": "重複タブの統合"

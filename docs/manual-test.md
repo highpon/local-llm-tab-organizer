@@ -132,7 +132,7 @@ Use a fresh Firefox profile so no models are cached. I1–I3 were checked headle
 - Result: Pass (headless probe: 12 cached files after restart; load 8.4 s first, 3.3 s cached)
 
 ### I2. Download needs no host permission
-- Steps: Check `about:addons` → tab-tidy → Permissions after the download.
+- Steps: Check `about:addons` → Local LLM Tab Organizer → Permissions after the download.
 - Expected: No website permissions were requested or granted.
 - Result: Pass (headless probe: `permissions.getAll().origins` was empty)
 
