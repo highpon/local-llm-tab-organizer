@@ -1,5 +1,6 @@
 import { runCycle, applyPending } from '../services/orchestrator';
 import { deleteModels, ensureModels, resetInterruptedDownload } from '../services/modelManager';
+import { offscreenHost } from '../services/ml/offscreenTransport';
 import { discardPending } from '../services/pending';
 import { ALARM_NAME, ensureAlarm, handleAlarm, handleIdleChange, type Message } from '../services/scheduler';
 import { loadSettings } from '../services/settings';
@@ -42,6 +43,8 @@ export default defineBackground(() => {
     .then((s) => browser.idle.setDetectionInterval(s.schedule.idleSeconds))
     .catch(console.error);
   resetInterruptedDownload().catch(console.error);
+  // A document left over from the previous service worker would otherwise keep its Worker alive.
+  if (import.meta.env.CHROME) offscreenHost.closeIdle().catch(console.error);
 
   // All listeners are registered synchronously: the MV3 event page is restarted per event.
   browser.runtime.onInstalled.addListener(() => {

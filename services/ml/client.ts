@@ -1,3 +1,4 @@
+import { offscreenHost } from './offscreenTransport';
 import type { MlRequest, MlResponse } from './protocol';
 
 export interface MlClient {
@@ -20,7 +21,10 @@ export interface WorkerLike {
 type Pending = { resolve: (v: unknown) => void; reject: (e: Error) => void };
 
 function spawnWorker(): WorkerLike {
-  return new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike;
+  // Chrome's MV3 service worker cannot start Workers: go through the offscreen document.
+  return import.meta.env.CHROME
+    ? offscreenHost.spawn()
+    : (new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' }) as unknown as WorkerLike);
 }
 
 /** Promise wrapper around the ML worker. The worker is spawned on the first request. */
