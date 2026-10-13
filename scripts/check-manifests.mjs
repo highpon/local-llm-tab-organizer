@@ -30,6 +30,7 @@ const chrome = readManifest(CHROME_DIR);
 check(!('browser_specific_settings' in chrome), 'chrome: must not have browser_specific_settings');
 check(chrome.minimum_chrome_version === '116', 'chrome: minimum_chrome_version must be 116');
 check((chrome.permissions ?? []).includes('offscreen'), 'chrome: permissions must include offscreen');
+check(existsSync(join(CHROME_DIR, 'offscreen.html')), 'chrome: offscreen.html must exist');
 const iconPaths = [...Object.values(chrome.icons ?? {}), ...Object.values(chrome.action?.default_icon ?? {})];
 check(iconPaths.length > 0, 'chrome: no icons declared');
 for (const path of iconPaths) {

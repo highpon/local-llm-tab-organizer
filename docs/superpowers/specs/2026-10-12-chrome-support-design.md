@@ -158,7 +158,7 @@ The README section covers:
 
 ### Manual tests (added to `docs/manual-test.md`)
 
-The existing checklist applies to both browsers; setup gains the Chrome steps (`npm run dev:chrome`, or load `.output/chrome-mv3` unpacked from `chrome://extensions`). A new Chrome section:
+The existing checklist applies to both browsers; setup gains the Chrome steps (`npm run build:chrome`, loading `.output/chrome-mv3` unpacked from `chrome://extensions`; `npm run dev:chrome` serves the offscreen scripts from the dev server, so it only exercises the LLM server and domain modes, not on-device AI). A new Chrome section:
 
 - Load unpacked: no errors on `chrome://extensions`; PNG icon in the toolbar and in notifications
 - On-device: first run downloads the models, later runs group by content; after the run, no offscreen document is listed under "Inspect views"

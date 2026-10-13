@@ -17,7 +17,7 @@ Firefox-specific wording in older items (e.g. `about:addons`, "Firefox's UI lang
    - Pull a small model (e.g. `ollama pull qwen2.5:1.5b`).
    - On the settings page, select "Local LLM server" ("ローカル LLM サーバー") as the classification method, set the base URL to `http://localhost:11434/v1` (Ollama's default), and set the model to the one you pulled.
    - For Chrome, start it with `OLLAMA_ORIGINS=chrome-extension://* ollama serve` (or `'moz-extension://*,chrome-extension://*'` for both).
-5. Chrome setup (instead of step 2 for Chrome checks): run `npm run dev:chrome`, or run `npm run build:chrome` and load `.output/chrome-mv3` unpacked from `chrome://extensions` (Developer mode). Open the settings page the same way.
+5. Chrome setup (instead of step 2 for Chrome checks): run `npm run build:chrome` and load `.output/chrome-mv3` unpacked from `chrome://extensions` (Developer mode). Open the settings page the same way. `npm run dev:chrome` only exercises the LLM server and domain modes; on-device AI (J2, J3) needs this built, unpacked load.
 6. Before each item, set the relevant modes in the popup and settings page, and reopen the test tabs.
 
 ## A. Merging duplicates and undo
@@ -196,11 +196,13 @@ Run these in Chrome 116 or later.
 - Result: Not run
 
 ### J2. On-device AI through the offscreen document
+- Note: use the `build:chrome` build; `dev:chrome` cannot start the ML worker.
 - Steps: Fresh profile, default settings. Run once and wait for the download, then run again. Afterwards open `chrome://extensions` and look under "Inspect views" for the extension.
 - Expected: The first run downloads the models; later runs group by content. After the run, no offscreen document is listed under "Inspect views".
 - Result: Not run
 
 ### J3. Service worker stopped during a download
+- Note: use the `build:chrome` build; `dev:chrome` cannot start the ML worker.
 - Steps: Start the model download from the settings page, then stop the service worker from `chrome://serviceworker-internals`. Let the service worker start again (e.g. open the popup).
 - Expected: The leftover offscreen document is closed at the next start, and the model status returns to "missing".
 - Result: Not run

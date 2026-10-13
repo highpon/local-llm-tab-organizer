@@ -1,5 +1,5 @@
 import type { WorkerLike } from './client';
-import { ML_PORT, type PortLike, type RelayMessage } from './offscreenRelay';
+import { ML_PORT, type PortLike, type RelayMessage } from './relayProtocol';
 import type { MlRequest, MlResponse } from './protocol';
 
 export interface OffscreenDeps {
@@ -33,7 +33,12 @@ function browserDeps(): OffscreenDeps {
         justification: 'Runs the on-device tab classifier in a Web Worker',
       }),
     closeDocument: () => browser.offscreen.closeDocument(),
-    connect: () => browser.runtime.connect({ name: ML_PORT }) as unknown as PortLike,
+    connect: () => {
+      const port = browser.runtime.connect({ name: ML_PORT });
+      // Reading lastError marks it as checked, so failed connects do not log "Unchecked runtime.lastError".
+      port.onDisconnect.addListener(() => void browser.runtime.lastError);
+      return port as unknown as PortLike;
+    },
     delay: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   };
 }

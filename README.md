@@ -28,6 +28,8 @@ npm run dev:chrome    # Chrome
 
 This launches the browser with the extension loaded and reloads it automatically when the code changes.
 
+Note for Chrome: in dev mode the offscreen page's scripts are served from the dev server, so the on-device ML worker cannot start there. `npm run dev:chrome` only exercises the LLM server and domain modes. To test on-device AI in Chrome, run `npm run build:chrome` and load `.output/chrome-mv3` unpacked from `chrome://extensions`.
+
 ### Option B: load it into your regular Firefox temporarily
 
 1. Run `npm run build:firefox`.

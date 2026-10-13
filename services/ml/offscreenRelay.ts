@@ -1,16 +1,5 @@
 import type { MlRequest, MlResponse } from './protocol';
-
-export const ML_PORT = 'ml';
-
-export type RelayMessage = MlResponse | { type: 'relayReady' } | { type: 'workerError'; message: string };
-
-export interface PortLike {
-  name: string;
-  postMessage(msg: unknown): void;
-  onMessage: { addListener(fn: (msg: unknown) => void): void };
-  onDisconnect: { addListener(fn: () => void): void };
-  disconnect(): void;
-}
+import { ML_PORT, type PortLike, type RelayMessage } from './relayProtocol';
 
 function spawnWorker(): Worker {
   return new Worker(new URL('./worker.ts', import.meta.url), { type: 'module' });

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { startRelay, type PortLike } from '../../../services/ml/offscreenRelay';
+import { startRelay } from '../../../services/ml/offscreenRelay';
+import type { PortLike } from '../../../services/ml/relayProtocol';
 import type { MlRequest, MlResponse } from '../../../services/ml/protocol';
 
 class FakeWorker {

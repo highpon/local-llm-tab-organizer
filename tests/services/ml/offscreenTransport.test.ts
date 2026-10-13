@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import type { WorkerLike } from '../../../services/ml/client';
-import type { PortLike } from '../../../services/ml/offscreenRelay';
+import { createMlClient, type WorkerLike } from '../../../services/ml/client';
+import type { PortLike } from '../../../services/ml/relayProtocol';
 import { createOffscreenHost, type OffscreenDeps } from '../../../services/ml/offscreenTransport';
 import type { MlRequest, MlResponse } from '../../../services/ml/protocol';
 
@@ -309,5 +309,28 @@ describe('createOffscreenHost', () => {
     await flush();
     expect(onerror).toHaveBeenCalledWith({ message: 'blocked' });
     expect(deps.connect).not.toHaveBeenCalled();
+  });
+
+  describe('with createMlClient', () => {
+    it('resolves an embed request with the relay response after relayReady', async () => {
+      const { host, ports } = setup();
+      const client = createMlClient(() => host.spawn());
+      const pending = client.embed(['hello']);
+      await flush();
+      const sent = ports[0]!.sent[0] as MlRequest;
+      expect(sent.type).toBe('embed');
+      ports[0]!.emit({ id: sent.id, ok: true, result: [[1, 2, 3]] });
+      await expect(pending).resolves.toEqual([[1, 2, 3]]);
+    });
+
+    it('rejects a pending request when the port gives up', async () => {
+      const { deps, host } = setup({ script: ['fail', 'fail', 'fail', 'fail', 'fail'] });
+      const client = createMlClient(() => host.spawn());
+      const pending = client.embed(['hello']);
+      const assertion = expect(pending).rejects.toThrow('ML offscreen document closed');
+      await flush();
+      await assertion;
+      expect(deps.connect).toHaveBeenCalledTimes(5);
+    });
   });
 });
